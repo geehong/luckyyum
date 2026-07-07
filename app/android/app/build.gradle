@@ -117,5 +117,5 @@ dependencies {
         implementation jscFlavor
     }
 
-    implementation("com.tencent.mmkv:mmkv:1.3.9")
+    implementation("com.tencent:mmkv:1.3.9")
 }
