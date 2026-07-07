@@ -1,0 +1,1 @@
+// Deleted: Misplaced file. Use /frontend/app/page.tsx instead.
