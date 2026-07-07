@@ -50,7 +50,6 @@ jobs:
         with:
           tag_name: latest
           name: Latest Build
-          prerelease: true
           files: app/android/app/build/outputs/apk/debug/luckyyum-latest.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
