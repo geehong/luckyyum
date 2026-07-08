@@ -126,9 +126,23 @@ class OverlayService : Service() {
                         val state = jsonObj.getJSONObject("state")
                         val petName = state.optString("petName", "Unknown")
                         val petTier = state.optInt("petTier", 0)
+                        val petStage = state.optString("petStage", "egg")
+                        val isDead = state.optBoolean("isDead", false)
                         
                         val tvName = floatingView.findViewById<TextView>(R.id.tv_pet_name)
+                        val tvEmoji = floatingView.findViewById<TextView>(R.id.tv_pet_emoji)
+                        
                         tvName.text = "🐾 $petName (Tier: $petTier)"
+                        
+                        val emoji = if (isDead || petStage == "memorial") "👻"
+                        else when (petStage) {
+                            "egg" -> "🥚"
+                            "baby" -> "🐣"
+                            "teen" -> "🐥"
+                            "adult" -> "🦅"
+                            else -> "❓"
+                        }
+                        tvEmoji.text = emoji
                     }
                 }
             } catch (e: Exception) {
