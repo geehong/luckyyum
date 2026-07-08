@@ -131,9 +131,24 @@ class OverlayService : Service() {
                         val state = jsonObj.getJSONObject("state")
                         val petName = state.optString("petName", "Unknown")
                         val petTier = state.optInt("petTier", 0)
+                        val petStage = state.optString("petStage", "egg")
                         
                         val tvName = floatingView.findViewById<TextView>(R.id.tv_pet_name)
                         tvName.text = "🐾 $petName (Tier: $petTier)"
+                        
+                        val ivAnim = floatingView.findViewById<android.widget.ImageView>(R.id.iv_pet_anim)
+                        val currentTag = ivAnim.tag as? String
+                        if (currentTag != petStage) {
+                            val animRes = when (petStage) {
+                                "baby" -> R.drawable.pet_dragon_anim
+                                "teen", "adult" -> R.drawable.pet_bear_anim
+                                else -> R.drawable.pet_fly_anim
+                            }
+                            ivAnim.setBackgroundResource(animRes)
+                            val animDrawable = ivAnim.background as android.graphics.drawable.AnimationDrawable
+                            animDrawable.start()
+                            ivAnim.tag = petStage
+                        }
                     }
                 }
             } catch (e: Exception) {

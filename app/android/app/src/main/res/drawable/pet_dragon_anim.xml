@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:oneshot="false">
+    <item android:drawable="@drawable/pet_dragon_01" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_02" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_03" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_04" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_05" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_06" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_07" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_08" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_09" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_10" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_11" android:duration="150" />
+    <item android:drawable="@drawable/pet_dragon_12" android:duration="150" />
+</animation-list>
