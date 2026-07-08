@@ -12,10 +12,10 @@ const App = () => {
   const storeState = useUserStore();
   const { 
     petName, petTier, isOverlayActive, setOverlayActive, setPetName, setDailyFortuneLock,
-    fullness, intimacy, cleanliness, isDead, feed, play, clean, resetPet, dailyFortuneLock,
-    hatchEgg, memorials, syncToServer
+    fullness, intimacy, cleanliness, isDead, petStage, feed, play, clean, resetPet, dailyFortuneLock,
+    hatchEgg, gachaEgg, memorials, syncToServer
   } = storeState;
-
+  
   const [isLeaderboardVisible, setLeaderboardVisible] = useState(false);
   const [isMemorialVisible, setMemorialVisible] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
@@ -99,16 +99,23 @@ const App = () => {
       </View>
 
       {!isDead ? (
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionButton} onPress={feed}>
-            <Text style={styles.actionText}>밥주기 🍚</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={play}>
-            <Text style={styles.actionText}>놀아주기 ⚽</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={clean}>
-            <Text style={styles.actionText}>청소하기 🧹</Text>
-          </TouchableOpacity>
+        <View>
+          {petStage === 'egg' && (
+            <View style={{ marginBottom: 15 }}>
+              <Button title="✨ 새 알 뽑기 (가챠) ✨" onPress={gachaEgg} color="#FFD700" />
+            </View>
+          )}
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.actionButton} onPress={feed}>
+              <Text style={styles.actionText}>{petStage === 'egg' ? '부화시키기 🥚' : '밥주기 🍚'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={play}>
+              <Text style={styles.actionText}>놀아주기 ⚽</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={clean}>
+              <Text style={styles.actionText}>청소하기 🧹</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <Button title="새 펫 뽑기 (환생)" onPress={hatchEgg} color="#ff5c5c" />

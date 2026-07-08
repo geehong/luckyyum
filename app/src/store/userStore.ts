@@ -46,6 +46,7 @@ export interface UserState {
   // M2-2 Memorials & Gacha
   memorials: Array<{ name: string; mbti: string; score: number; diedAt: number }>;
   hatchEgg: () => void;
+  gachaEgg: () => void;
   
   setPetName: (name: string) => void;
   setPetTier: (tier: number) => void;
@@ -208,6 +209,25 @@ export const useUserStore = create<UserState>()(
         return {
           petName: randomName,
           petStage: 'baby',
+          fullness: 50,
+          intimacy: 50,
+          cleanliness: 100,
+          lastCareTime: Date.now(),
+          isDead: false,
+          feedCount: 0,
+          playCount: 0,
+          cleanCount: 0,
+          dailyFortuneLock: null
+        };
+      }),
+      
+      gachaEgg: () => set((state) => {
+        const petNames = ['행운이', '대박이', '쑥쑥이', '튼튼이', '반짝이', '별이', '사랑이', '복실이', '도담이', '우람이', '구름이', '보리', '코코', '달이', '해피'];
+        const randomName = petNames[Math.floor(Math.random() * petNames.length)];
+        
+        return {
+          petName: randomName,
+          petStage: 'egg',
           fullness: 50,
           intimacy: 50,
           cleanliness: 100,
