@@ -1,4 +1,33 @@
-import { UserState } from '../store/userStore';
+import { UserState, UserProfile } from '../store/userStore';
+import { getManseryeokData } from './manseryeok';
+
+// 프로필 정보를 바탕으로 오늘의 베이스 사주 등급을 계산 (1~5)
+export const generateTodayBaseTier = (profile: UserProfile): number => {
+  if (!profile) return 3; // 기본값
+  
+  const [year, month, day] = profile.birthDate.split('-').map(Number);
+  const [hour, minute] = profile.birthTime.split(':').map(Number);
+  
+  try {
+    const sajuData = getManseryeokData({
+      year, month, day, hour, minute, gender: profile.gender
+    });
+    
+    // 임시 로직: 일간(Day Master)과 오늘의 날짜를 해싱하여 1~5 등급 도출
+    // 실제로는 오행 상생상극이나 더 복잡한 로직이 들어갈 수 있음
+    const today = new Date().toISOString().split('T')[0];
+    let hash = 0;
+    const str = sajuData.dayMaster + today;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const tier = (Math.abs(hash) % 5) + 1;
+    return tier;
+  } catch (e) {
+    console.error("Failed to calculate saju tier", e);
+    return 3;
+  }
+};
 
 export const calculateFortuneTier = (store: UserState, baseSajuTier: number): number => {
   const { fullness, intimacy, dailyFortuneLock } = store;

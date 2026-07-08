@@ -19,10 +19,17 @@ const zustandStorage: StateStorage = {
 
 export type PetStage = 'egg' | 'baby' | 'teen' | 'adult' | 'memorial';
 
+export interface UserProfile {
+  birthDate: string; // YYYY-MM-DD
+  birthTime: string; // HH:mm
+  gender: '남' | '여';
+}
+
 export interface UserState {
   petName: string;
   petTier: number;
   isOverlayActive: boolean;
+  userProfile: UserProfile | null;
   
   // M1-2 Pet Care Stats
   petStage: PetStage;
@@ -47,6 +54,7 @@ export interface UserState {
   memorials: Array<{ name: string; mbti: string; score: number; diedAt: number }>;
   hatchEgg: () => void;
   gachaEgg: () => void;
+  setUserProfile: (profile: UserProfile) => void;
   
   setPetName: (name: string) => void;
   setPetTier: (tier: number) => void;
@@ -67,6 +75,7 @@ export const useUserStore = create<UserState>()(
       petName: 'Lucky',
       petTier: 1,
       isOverlayActive: false,
+      userProfile: null,
       
       petStage: 'egg',
       fullness: 50,
@@ -82,6 +91,7 @@ export const useUserStore = create<UserState>()(
       authToken: null,
       memorials: [],
 
+      setUserProfile: (profile) => set({ userProfile: profile }),
       setAuthToken: (token) => set({ authToken: token }),
       setPetName: (name) => set({ petName: name }),
       setPetTier: (tier) => set({ petTier: tier }),

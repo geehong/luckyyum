@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
 import { useUserStore } from './src/store/userStore';
 import OverlayModuleSafe from './src/modules/OverlayModule';
 import PetRenderer from './src/components/PetRenderer';
 import { syncOfflineTime, timeTravelForward } from './src/utils/timeSync';
 import { calculateMBTI } from './src/utils/mbtiCalculator';
-import { calculateFortuneTier, getMockFortuneText } from './src/utils/fortuneLogic';
+import { calculateFortuneTier, getMockFortuneText, generateTodayBaseTier } from './src/utils/fortuneLogic';
 import { fetchRankings } from './src/utils/apiClient';
 
 const App = () => {
@@ -13,12 +13,17 @@ const App = () => {
   const { 
     petName, petTier, isOverlayActive, setOverlayActive, setPetName, setDailyFortuneLock,
     fullness, intimacy, cleanliness, isDead, petStage, feed, play, clean, resetPet, dailyFortuneLock,
-    hatchEgg, gachaEgg, memorials, syncToServer
+    hatchEgg, gachaEgg, memorials, syncToServer, userProfile, setUserProfile
   } = storeState;
   
   const [isLeaderboardVisible, setLeaderboardVisible] = useState(false);
   const [isMemorialVisible, setMemorialVisible] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+
+  // Setup Screen state
+  const [setupBirthDate, setSetupBirthDate] = useState('1990-01-01');
+  const [setupBirthTime, setSetupBirthTime] = useState('12:00');
+  const [setupGender, setSetupGender] = useState<'남'|'여'>('남');
 
   useEffect(() => {
     // 앱 시작 시 상태 동기화 및 오프라인 시간 역산 적용
@@ -27,9 +32,10 @@ const App = () => {
     // 일일 운세 락킹 로직
     const today = new Date().toISOString().split('T')[0];
     if (!dailyFortuneLock || dailyFortuneLock.date !== today) {
-      // 오늘 첫 접속이면 무작위 베이스 사주 등급(1~5) 할당 시뮬레이션
-      const randomBaseTier = Math.floor(Math.random() * 5) + 1;
-      setDailyFortuneLock({ date: today, baseTier: randomBaseTier, isRescued: false });
+      if (userProfile) {
+        const calculatedTier = generateTodayBaseTier(userProfile);
+        setDailyFortuneLock({ date: today, baseTier: calculatedTier, isRescued: false });
+      }
     }
     
     if (isOverlayActive) {
@@ -73,6 +79,53 @@ const App = () => {
     const newName = petName === 'Lucky' ? 'Happy' : 'Lucky';
     setPetName(newName);
   };
+
+  const handleSaveProfile = () => {
+    if (!setupBirthDate || !setupBirthTime) {
+      Alert.alert('알림', '생년월일과 태어난 시간을 모두 입력해주세요.');
+      return;
+    }
+    setUserProfile({
+      birthDate: setupBirthDate,
+      birthTime: setupBirthTime,
+      gender: setupGender
+    });
+  };
+
+  if (!userProfile) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.setupCard}>
+          <Text style={styles.title}>내 사주 정보 입력</Text>
+          <Text style={{marginBottom: 20, textAlign: 'center'}}>정확한 맞춤 운세를 위해 태어난 정보를 입력해주세요.</Text>
+          
+          <Text style={styles.label}>생년월일 (YYYY-MM-DD)</Text>
+          <TextInput 
+            style={styles.input} 
+            value={setupBirthDate} 
+            onChangeText={setSetupBirthDate}
+            placeholder="1990-01-01" 
+          />
+
+          <Text style={styles.label}>태어난 시간 (HH:mm)</Text>
+          <TextInput 
+            style={styles.input} 
+            value={setupBirthTime} 
+            onChangeText={setSetupBirthTime}
+            placeholder="12:00" 
+          />
+
+          <Text style={styles.label}>성별</Text>
+          <View style={{flexDirection: 'row', justifyContent: 'space-around', marginBottom: 20}}>
+            <Button title="남성" color={setupGender === '남' ? '#4CAF50' : '#ccc'} onPress={() => setSetupGender('남')} />
+            <Button title="여성" color={setupGender === '여' ? '#4CAF50' : '#ccc'} onPress={() => setSetupGender('여')} />
+          </View>
+
+          <Button title="시작하기" onPress={handleSaveProfile} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -274,6 +327,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
     marginBottom: 10,
+  },
+  setupCard: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 15,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 20,
+    fontSize: 16,
   }
 });
 
