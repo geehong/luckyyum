@@ -3,7 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import rankings, auth, users
+from .routers import rankings, auth, users, tester
+from fastapi.responses import RedirectResponse
 
 # ── 앱 초기화 ─────────────────────────────────────────────────────────
 app = FastAPI(
@@ -26,7 +27,14 @@ app.add_middleware(
 app.include_router(rankings.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(tester.router)
 
 @app.get("/health", tags=["Health"])
 async def health_check():
     return {"status": "ok", "message": "LuckyYum API is running"}
+
+@app.get("/appdown", tags=["App"])
+async def download_latest_app():
+    return RedirectResponse(
+        url="https://github.com/geehong/luckyyum/releases/latest/download/luckyyum-latest.apk"
+    )

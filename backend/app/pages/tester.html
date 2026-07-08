@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuckyYum Care Algorithm Simulator</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
+        .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        button { padding: 10px 15px; margin-right: 5px; cursor: pointer; }
+        .log { height: 200px; overflow-y: scroll; background: #f9f9f9; padding: 10px; border: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+
+    <h1>펫 케어 알고리즘 시뮬레이터</h1>
+    
+    <div class="card">
+        <h2>시간 경과</h2>
+        <p>현재 펫 경과 시간: <span id="timeElapsed">0</span>일</p>
+        <p>펫 상태: <strong id="petStage">Egg</strong></p>
+        <p>수명: 최대 90일 (3개월)</p>
+        <button onclick="passTime(0.5)">12시간 경과</button>
+        <button onclick="passTime(1)">1일 경과</button>
+        <button onclick="passTime(7)">7일 경과</button>
+    </div>
+
+    <div class="card">
+        <h2>일일 케어 (오늘 하루 동안의 활동)</h2>
+        <div class="row">
+            <div>
+                <p><strong>밥주기 (목표 100g, 3회 분할 최적)</strong></p>
+                <p>오늘 밥준 횟수: <span id="feedCount">0</span> | 누적량: <span id="feedAmount">0</span>g</p>
+                <button onclick="feed(10)">10g 주기</button>
+                <button onclick="feed(33)">33g 주기 (최적)</button>
+                <button onclick="feed(90)">90g 주기 (폭식)</button>
+            </div>
+            <div>
+                <p><strong>놀아주기 (목표 3회)</strong></p>
+                <p>오늘 놀아준 횟수: <span id="playCount">0</span></p>
+                <button onclick="play()">놀아주기 (1회)</button>
+            </div>
+            <div>
+                <p><strong>청소하기 (오염도 100 기준 30미만일때 청소 최적)</strong></p>
+                <p>현재 오염도: <span id="dirtLevel">0</span> / 100</p>
+                <p>오늘 청소 횟수: <span id="cleanCount">0</span></p>
+                <button onclick="clean()">청소하기</button>
+            </div>
+        </div>
+        <button onclick="endDay()" style="background: #4CAF50; color: white; width: 100%; margin-top: 10px;">하루 결산 (점수 계산)</button>
+    </div>
+
+    <div class="card">
+        <h2>누적 스탯</h2>
+        <p>총 획득 케어 점수: <strong id="totalScore">0</strong>점</p>
+        <div class="log" id="logBox"></div>
+    </div>
+
+<script>
+    let daysPassed = 0;
+    let totalScore = 0;
+    
+    // 일일 상태
+    let dailyFeeds = [];
+    let playCount = 0;
+    let cleanCount = 0;
+    let dirtLevel = 0; // 매일 조금씩 쌓임
+
+    function updateUI() {
+        document.getElementById('timeElapsed').innerText = daysPassed.toFixed(1);
+        
+        let stage = 'Egg';
+        if (daysPassed >= 90) stage = 'Memorial (Dead)';
+        else if (daysPassed >= 5.5) stage = 'Adult';
+        else if (daysPassed >= 2.5) stage = 'Teen';
+        else if (daysPassed >= 0.5) stage = 'Baby';
+        
+        document.getElementById('petStage').innerText = stage;
+        
+        document.getElementById('feedCount').innerText = dailyFeeds.length;
+        document.getElementById('feedAmount').innerText = dailyFeeds.reduce((a,b)=>a+b, 0);
+        document.getElementById('playCount').innerText = playCount;
+        document.getElementById('dirtLevel').innerText = dirtLevel;
+        document.getElementById('cleanCount').innerText = cleanCount;
+        document.getElementById('totalScore').innerText = totalScore.toFixed(0);
+    }
+
+    function log(msg) {
+        const box = document.getElementById('logBox');
+        box.innerHTML += `<div>[${daysPassed.toFixed(1)}일차] ${msg}</div>`;
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function passTime(days) {
+        if (daysPassed >= 90) return alert('이미 수명을 다했습니다.');
+        daysPassed += days;
+        dirtLevel = Math.min(100, dirtLevel + (days * 50)); // 하루에 오염도 50증가
+        log(`${days}일이 지났습니다.`);
+        updateUI();
+    }
+
+    function feed(amount) {
+        if (daysPassed >= 90) return;
+        dailyFeeds.push(amount);
+        updateUI();
+    }
+
+    function play() {
+        if (daysPassed >= 90) return;
+        playCount++;
+        updateUI();
+    }
+
+    function clean() {
+        if (daysPassed >= 90) return;
+        let score = 0;
+        if (dirtLevel >= 70) {
+            score = 10;
+            log(`더러울 때 청소해서 +10점 획득!`);
+        } else if (dirtLevel >= 30) {
+            score = 5;
+            log(`적당할 때 청소해서 +5점 획득.`);
+        } else {
+            score = -2;
+            log(`너무 깨끗한데 계속 청소해서 페널티! (-2점)`);
+        }
+        totalScore += score;
+        dirtLevel = 0;
+        cleanCount++;
+        updateUI();
+    }
+
+    function endDay() {
+        if (daysPassed >= 90) return;
+        
+        // 밥주기 정산
+        let feedSum = dailyFeeds.reduce((a,b)=>a+b, 0);
+        let feedScore = 0;
+        if (feedSum >= 90 && feedSum <= 110) {
+            // 적정량
+            let hasPenalty = dailyFeeds.some(amt => amt < 20 || amt > 50);
+            if (!hasPenalty && dailyFeeds.length >= 2) {
+                feedScore = 30; // 최고점
+                log(`[정산] 이상적인 식사 분배로 보너스 획득! (+30점)`);
+            } else {
+                feedScore = 15;
+                log(`[정산] 하루 총량은 맞췄으나 분배가 아쉽습니다. (+15점)`);
+            }
+        } else {
+            feedScore = 0;
+            log(`[정산] 밥을 너무 적게 주거나 폭식했습니다. (0점)`);
+        }
+        
+        // 놀아주기 정산
+        let playScore = 0;
+        if (playCount === 3) {
+            playScore = 20;
+            log(`[정산] 적절하게 놀아주었습니다! (+20점)`);
+        } else if (playCount > 3) {
+            playScore = 5;
+            log(`[정산] 너무 많이 놀아줘서 피로가 쌓였습니다. (+5점)`);
+        } else if (playCount > 0) {
+            playScore = playCount * 5;
+        }
+        
+        totalScore += (feedScore + playScore);
+        
+        // 하루 초기화 및 시간 1일 경과
+        dailyFeeds = [];
+        playCount = 0;
+        cleanCount = 0;
+        passTime(1);
+    }
+</script>
+
+</body>
+</html>
