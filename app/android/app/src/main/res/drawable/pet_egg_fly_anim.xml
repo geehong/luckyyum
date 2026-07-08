@@ -13,4 +13,8 @@
     <item android:drawable="@drawable/pet_egg_fly_10" android:duration="300" />
     <item android:drawable="@drawable/pet_egg_fly_11" android:duration="300" />
     <item android:drawable="@drawable/pet_egg_fly_12" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_fly_13" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_fly_14" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_fly_15" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_fly_16" android:duration="300" />
 </animation-list>
