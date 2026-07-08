@@ -43,10 +43,12 @@ const LiveTalkScreen = ({ visible, onClose }: Props) => {
     setStatus('connecting');
     let timedOut = false;
 
+    console.log(`[LiveTalkScreen] connecting to ${WS_URL} ...`);
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
 
-    const fallbackToLocal = () => {
+    const fallbackToLocal = (reason: string) => {
+      console.warn(`[LiveTalkScreen] falling back to local line — reason: ${reason}`);
       setStatus('fallback');
       setMessages((prev) => [
         ...prev,
@@ -56,11 +58,12 @@ const LiveTalkScreen = ({ visible, onClose }: Props) => {
 
     const timeoutId = setTimeout(() => {
       timedOut = true;
-      fallbackToLocal();
+      fallbackToLocal(`connect timeout after ${CONNECT_TIMEOUT_MS}ms (readyState=${ws.readyState})`);
       ws.close();
     }, CONNECT_TIMEOUT_MS);
 
     ws.onopen = () => {
+      console.log('[LiveTalkScreen] WS onopen — connected, sending init');
       clearTimeout(timeoutId);
       if (timedOut) return;
       setStatus('connected');
@@ -72,7 +75,7 @@ const LiveTalkScreen = ({ visible, onClose }: Props) => {
         const data = JSON.parse(event.data);
 
         if (data.error) {
-          fallbackToLocal();
+          fallbackToLocal(`server sent error: ${data.error}`);
           return;
         }
 
@@ -98,12 +101,14 @@ const LiveTalkScreen = ({ visible, onClose }: Props) => {
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (event: any) => {
+      console.warn('[LiveTalkScreen] WS onerror', event?.message ?? event);
       clearTimeout(timeoutId);
-      fallbackToLocal();
+      fallbackToLocal(`onerror: ${event?.message ?? 'unknown'}`);
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event: any) => {
+      console.log(`[LiveTalkScreen] WS onclose — code=${event?.code}, reason=${event?.reason}, wasClean=${event?.wasClean}`);
       clearTimeout(timeoutId);
     };
 

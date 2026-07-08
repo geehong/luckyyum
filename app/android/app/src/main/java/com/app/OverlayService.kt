@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -24,6 +25,11 @@ import org.json.JSONObject
 
 class OverlayService : Service() {
 
+    companion object {
+        // adb logcat -s LuckyYumOverlay 로 이 태그만 걸러서 볼 수 있다.
+        private const val TAG = "LuckyYumOverlay"
+    }
+
     private lateinit var windowManager: WindowManager
     private lateinit var floatingView: View
     private val handler = Handler(Looper.getMainLooper())
@@ -35,10 +41,16 @@ class OverlayService : Service() {
     private var isLongPressTriggered = false
 
     private val LONG_PRESS_MS = 2000L
-    private val TOUCH_SLOP_PX = 20
     private val MENU_AUTO_DISMISS_MS = 3000L
     private val ONE_HOUR_MS = 60 * 60 * 1000L
     private val DAILY_DIALOGUE_LIMIT = 5
+
+    // 화면 밀도에 맞춘 터치 슬랍. 이걸 raw px로 고정해두면(예: 20px) 고밀도 화면에서
+    // 8dp도 안 돼서, 2초간 가만히 누르고 있어도 손가락의 자연스러운 미세 떨림만으로
+    // ACTION_MOVE가 임계값을 넘어 롱프레스 타이머가 계속 취소되는 버그가 생긴다.
+    private val touchSlop: Int by lazy {
+        android.view.ViewConfiguration.get(this).scaledTouchSlop
+    }
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
@@ -113,7 +125,10 @@ class OverlayService : Service() {
                     initialTouchY = event.rawY
                     isLongPressTriggered = false
 
+                    Log.d(TAG, "ACTION_DOWN — long press timer started (${LONG_PRESS_MS}ms, cancelSlop=${touchSlop * 3}px)")
+
                     longPressRunnable = Runnable {
+                        Log.d(TAG, "long press timer fired — showing overlay menu")
                         isLongPressTriggered = true
                         showOverlayMenu()
                     }
@@ -124,8 +139,13 @@ class OverlayService : Service() {
                     val dx = (event.rawX - initialTouchX).toInt()
                     val dy = (event.rawY - initialTouchY).toInt()
 
-                    // 일정 거리 이상 움직이면 롱프레스는 취소 (일반적인 터치 시맨틱과 동일)
-                    if ((Math.abs(dx) > TOUCH_SLOP_PX || Math.abs(dy) > TOUCH_SLOP_PX) && longPressRunnable != null) {
+                    // 일정 거리 이상 움직이면 롱프레스는 취소. 단, 2초 내내 완전히 고정된 자세를
+                    // 유지하는 건 현실적으로 어려워 손 떨림만으로도 취소되기 쉬우므로, 일반적인
+                    // 탭/스크롤 구분용 슬랍(touchSlop)보다 넉넉하게(3배) 잡아서 롱프레스가
+                    // 지나치게 예민하게 취소되지 않도록 한다.
+                    val longPressCancelSlop = touchSlop * 3
+                    if ((Math.abs(dx) > longPressCancelSlop || Math.abs(dy) > longPressCancelSlop) && longPressRunnable != null) {
+                        Log.d(TAG, "ACTION_MOVE exceeded cancelSlop (dx=$dx, dy=$dy, slop=$longPressCancelSlop) — long press cancelled")
                         handler.removeCallbacks(longPressRunnable!!)
                         longPressRunnable = null
                     }
@@ -148,12 +168,23 @@ class OverlayService : Service() {
                         // 이동량이 펫 뷰 자체의 크기 범위 이내면 쓰다듬기로 처리하고 원위치로 스냅.
                         // 그보다 크게 움직였다면 이미 ACTION_MOVE에서 반영된 드래그(이동) 결과를 그대로 둔다.
                         if (dx <= floatingView.width && dy <= floatingView.height) {
+                            Log.d(TAG, "ACTION_UP — treated as PET (dx=$dx, dy=$dy, viewSize=${floatingView.width}x${floatingView.height})")
                             params.x = initialX
                             params.y = initialY
                             windowManager.updateViewLayout(floatingView, params)
                             triggerPetAction()
+                        } else {
+                            Log.d(TAG, "ACTION_UP — treated as DRAG (dx=$dx, dy=$dy, viewSize=${floatingView.width}x${floatingView.height})")
                         }
+                    } else {
+                        Log.d(TAG, "ACTION_UP — long press already handled, no-op")
                     }
+                    true
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    // 시스템이 제스처를 가로채는 등 ACTION_UP 없이 끝나는 경우에도 타이머는 반드시 정리.
+                    longPressRunnable?.let { handler.removeCallbacks(it) }
+                    longPressRunnable = null
                     true
                 }
                 else -> false
@@ -217,11 +248,13 @@ class OverlayService : Service() {
     }
 
     private fun showOverlayMenu() {
-        if (menuView != null) return
+        if (menuView != null) {
+            Log.d(TAG, "showOverlayMenu — menu already showing, skip")
+            return
+        }
 
         val layoutInflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val view = layoutInflater.inflate(R.layout.overlay_menu, null)
-        menuView = view
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -242,7 +275,16 @@ class OverlayService : Service() {
         params.x = petParams?.x ?: 0
         params.y = (petParams?.y ?: 0) + floatingView.height
 
-        windowManager.addView(view, params)
+        try {
+            windowManager.addView(view, params)
+            menuView = view
+            Log.d(TAG, "showOverlayMenu — menu view added successfully at (${params.x}, ${params.y})")
+        } catch (e: Exception) {
+            // addView가 여기서 예외를 던지면(권한/토큰 문제 등) 아무 로그 없이 서비스가 죽을 수 있어
+            // 반드시 잡아서 로그로 남긴다. 이게 실제 원인이라면 여기서 스택트레이스가 보여야 한다.
+            Log.e(TAG, "showOverlayMenu — windowManager.addView FAILED", e)
+            return
+        }
 
         view.findViewById<Button>(R.id.btn_talk).setOnClickListener {
             if (isDialogueBlocked()) {
