@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="#FFFFFFFF"
+    android:padding="12dp"
+    android:orientation="vertical"
+    android:elevation="8dp">
+
+    <Button
+        android:id="@+id/btn_talk"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="💬 말걸기"
+        android:textSize="14sp"
+        android:layout_marginBottom="6dp" />
+
+    <Button
+        android:id="@+id/btn_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="📊 상태보기"
+        android:textSize="14sp" />
+
+</LinearLayout>

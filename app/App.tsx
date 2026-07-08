@@ -3,6 +3,10 @@ import { SafeAreaView, StyleSheet, Text, View, Switch, Button, Alert, TouchableO
 import { useUserStore } from './src/store/userStore';
 import OverlayModuleSafe from './src/modules/OverlayModule';
 import PetRenderer from './src/components/PetRenderer';
+import PetDialogue from './src/components/PetDialogue';
+import CheckInScreen from './src/components/CheckInScreen';
+import TalkMenuScreen from './src/components/TalkMenuScreen';
+import LiveTalkScreen from './src/components/LiveTalkScreen';
 import { syncOfflineTime, timeTravelForward } from './src/utils/timeSync';
 import { calculateMBTI } from './src/utils/mbtiCalculator';
 import { calculateFortuneTier, getMockFortuneText, generateTodayBaseTier } from './src/utils/fortuneLogic';
@@ -10,15 +14,19 @@ import { fetchRankings } from './src/utils/apiClient';
 
 const App = () => {
   const storeState = useUserStore();
-  const { 
+  const {
     petName, petTier, isOverlayActive, setOverlayActive, setPetName, setDailyFortuneLock,
-    fullness, intimacy, cleanliness, isDead, petStage, feed, play, clean, resetPet, dailyFortuneLock,
+    fullness, intimacy, cleanliness, isDead, petStage, feed, play, clean, pet, resetPet, dailyFortuneLock,
     hatchEgg, gachaEgg, memorials, syncToServer, userProfile, setUserProfile
   } = storeState;
-  
+
   const [isLeaderboardVisible, setLeaderboardVisible] = useState(false);
   const [isMemorialVisible, setMemorialVisible] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+
+  // M3 대화 & 안부 묻기 화면 라우팅 ('말걸기' 서브메뉴 → 성향대화/일상대화(Live) 또는 안부묻기)
+  const [isTalkMenuVisible, setTalkMenuVisible] = useState(false);
+  const [activeDialogueScreen, setActiveDialogueScreen] = useState<'personality' | 'checkin' | 'live' | null>(null);
 
   // Setup Screen state
   const [setupBirthDate, setSetupBirthDate] = useState('1990-01-01');
@@ -44,6 +52,16 @@ const App = () => {
       OverlayModuleSafe.stopOverlay();
     }
   }, [isOverlayActive, dailyFortuneLock]);
+
+  useEffect(() => {
+    // 오버레이 롱프레스 메뉴("말걸기"/"상태보기")를 통해 앱이 열렸다면, 해당 화면으로 바로 진입.
+    // "상태보기"는 기본 메인 화면이 이미 이 화면이므로 별도 처리 불필요.
+    OverlayModuleSafe.getInitialRoute().then((route) => {
+      if (route === 'talk') {
+        setTalkMenuVisible(true);
+      }
+    });
+  }, []);
 
   const currentMBTI = calculateMBTI(storeState);
   const finalFortuneTier = calculateFortuneTier(storeState, dailyFortuneLock ? dailyFortuneLock.baseTier : 3);
@@ -79,6 +97,20 @@ const App = () => {
     const newName = petName === 'Lucky' ? 'Happy' : 'Lucky';
     setPetName(newName);
   };
+
+  const openTalkMenu = () => setTalkMenuVisible(true);
+
+  const handleSelectPersonality = () => {
+    setTalkMenuVisible(false);
+    setActiveDialogueScreen(petStage === 'adult' ? 'live' : 'personality');
+  };
+
+  const handleSelectCheckIn = () => {
+    setTalkMenuVisible(false);
+    setActiveDialogueScreen('checkin');
+  };
+
+  const closeDialogueScreen = () => setActiveDialogueScreen(null);
 
   const handleSaveProfile = () => {
     if (!setupBirthDate || !setupBirthTime) {
@@ -169,6 +201,16 @@ const App = () => {
               <Text style={styles.actionText}>청소하기 🧹</Text>
             </TouchableOpacity>
           </View>
+          {petStage !== 'egg' && (
+            <View style={styles.actionRow}>
+              <TouchableOpacity style={styles.actionButton} onPress={openTalkMenu}>
+                <Text style={styles.actionText}>대화하기 💬</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton} onPress={pet}>
+                <Text style={styles.actionText}>쓰다듬기 🤗</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       ) : (
         <Button title="새 펫 뽑기 (환생)" onPress={hatchEgg} color="#ff5c5c" />
@@ -218,6 +260,16 @@ const App = () => {
           <Button title="닫기" onPress={() => setMemorialVisible(false)} />
         </SafeAreaView>
       </Modal>
+
+      <TalkMenuScreen
+        visible={isTalkMenuVisible}
+        onClose={() => setTalkMenuVisible(false)}
+        onSelectPersonality={handleSelectPersonality}
+        onSelectCheckIn={handleSelectCheckIn}
+      />
+      <PetDialogue visible={activeDialogueScreen === 'personality'} onClose={closeDialogueScreen} />
+      <CheckInScreen visible={activeDialogueScreen === 'checkin'} onClose={closeDialogueScreen} />
+      <LiveTalkScreen visible={activeDialogueScreen === 'live'} onClose={closeDialogueScreen} />
 
     </SafeAreaView>
   );

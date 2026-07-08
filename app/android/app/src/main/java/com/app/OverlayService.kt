@@ -15,7 +15,9 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.tencent.mmkv.MMKV
 import org.json.JSONObject
@@ -27,19 +29,30 @@ class OverlayService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var isRunning = false
 
+    // 롱프레스 메뉴(overlay_menu.xml)용 별도 오버레이 뷰. null이면 표시 중이 아님.
+    private var menuView: View? = null
+    private var longPressRunnable: Runnable? = null
+    private var isLongPressTriggered = false
+
+    private val LONG_PRESS_MS = 2000L
+    private val TOUCH_SLOP_PX = 20
+    private val MENU_AUTO_DISMISS_MS = 3000L
+    private val ONE_HOUR_MS = 60 * 60 * 1000L
+    private val DAILY_DIALOGUE_LIMIT = 5
+
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }
 
     override fun onCreate() {
         super.onCreate()
-        
+
         // Initialize MMKV
         MMKV.initialize(this)
 
         startForegroundService()
         createFloatingView()
-        
+
         isRunning = true
         handler.post(updateRunnable)
     }
@@ -90,19 +103,57 @@ class OverlayService : Service() {
         var initialTouchX = 0f
         var initialTouchY = 0f
 
-        floatingView.setOnTouchListener { view, event ->
+        // 제스처 3종 판정: 드래그(이동) / 쓰다듬기(펫 크기 범위 내 스와이프) / 롱프레스(2초, 메뉴)
+        floatingView.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialX = params.x
                     initialY = params.y
                     initialTouchX = event.rawX
                     initialTouchY = event.rawY
+                    isLongPressTriggered = false
+
+                    longPressRunnable = Runnable {
+                        isLongPressTriggered = true
+                        showOverlayMenu()
+                    }
+                    handler.postDelayed(longPressRunnable!!, LONG_PRESS_MS)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    params.x = initialX + (event.rawX - initialTouchX).toInt()
-                    params.y = initialY + (event.rawY - initialTouchY).toInt()
-                    windowManager.updateViewLayout(floatingView, params)
+                    val dx = (event.rawX - initialTouchX).toInt()
+                    val dy = (event.rawY - initialTouchY).toInt()
+
+                    // 일정 거리 이상 움직이면 롱프레스는 취소 (일반적인 터치 시맨틱과 동일)
+                    if ((Math.abs(dx) > TOUCH_SLOP_PX || Math.abs(dy) > TOUCH_SLOP_PX) && longPressRunnable != null) {
+                        handler.removeCallbacks(longPressRunnable!!)
+                        longPressRunnable = null
+                    }
+
+                    if (!isLongPressTriggered) {
+                        params.x = initialX + dx
+                        params.y = initialY + dy
+                        windowManager.updateViewLayout(floatingView, params)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    longPressRunnable?.let { handler.removeCallbacks(it) }
+                    longPressRunnable = null
+
+                    if (!isLongPressTriggered) {
+                        val dx = Math.abs((event.rawX - initialTouchX).toInt())
+                        val dy = Math.abs((event.rawY - initialTouchY).toInt())
+
+                        // 이동량이 펫 뷰 자체의 크기 범위 이내면 쓰다듬기로 처리하고 원위치로 스냅.
+                        // 그보다 크게 움직였다면 이미 ACTION_MOVE에서 반영된 드래그(이동) 결과를 그대로 둔다.
+                        if (dx <= floatingView.width && dy <= floatingView.height) {
+                            params.x = initialX
+                            params.y = initialY
+                            windowManager.updateViewLayout(floatingView, params)
+                            triggerPetAction()
+                        }
+                    }
                     true
                 }
                 else -> false
@@ -110,21 +161,130 @@ class OverlayService : Service() {
         }
 
         windowManager.addView(floatingView, params)
-        
+
         val ivAnim = floatingView.findViewById<android.widget.ImageView>(R.id.iv_pet_anim)
         ivAnim.setBackgroundResource(R.drawable.pet_fly_anim)
         val animDrawable = ivAnim.background as android.graphics.drawable.AnimationDrawable
         animDrawable.start()
     }
 
+    /** MMKV의 user-storage JSON을 읽어 수정 후 다시 쓴다 (updateRunnable의 파싱 패턴과 동일). */
+    private fun updateUserStorageState(mutate: (JSONObject) -> Unit) {
+        try {
+            val mmkv = MMKV.defaultMMKV()
+            val userStorageStr = mmkv?.decodeString("user-storage") ?: return
+            val jsonObj = JSONObject(userStorageStr)
+            if (!jsonObj.has("state")) return
+            val state = jsonObj.getJSONObject("state")
+            mutate(state)
+            mmkv?.encode("user-storage", jsonObj.toString())
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    /** 쓰다듬기: intimacy +5(상한 100), petCount +1. (userStore.ts의 pet() 액션과 동일 규칙) */
+    private fun triggerPetAction() {
+        updateUserStorageState { state ->
+            val intimacy = state.optInt("intimacy", 50)
+            val petCount = state.optInt("petCount", 0)
+            state.put("intimacy", Math.min(100, intimacy + 5))
+            state.put("petCount", petCount + 1)
+        }
+        // TODO: 하트 파티클 등 가벼운 네이티브 애니메이션 (향후 작업)
+    }
+
+    /** dailyDialogueUsage(date/count/lastDialogueTime)를 검사해 대화 가능 여부 반환. */
+    private fun isDialogueBlocked(): Boolean {
+        val mmkv = MMKV.defaultMMKV()
+        val userStorageStr = mmkv?.decodeString("user-storage") ?: return false
+        return try {
+            val state = JSONObject(userStorageStr).optJSONObject("state") ?: return false
+            val usage = state.optJSONObject("dailyDialogueUsage") ?: return false
+
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                .format(java.util.Date())
+            if (usage.optString("date") != today) return false // 날짜가 다르면 리셋된 것과 동일
+
+            val count = usage.optInt("count", 0)
+            val lastDialogueTime = usage.optLong("lastDialogueTime", 0)
+            val now = System.currentTimeMillis()
+
+            count >= DAILY_DIALOGUE_LIMIT || (lastDialogueTime > 0 && now - lastDialogueTime < ONE_HOUR_MS)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private fun showOverlayMenu() {
+        if (menuView != null) return
+
+        val layoutInflater = getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        val view = layoutInflater.inflate(R.layout.overlay_menu, null)
+        menuView = view
+
+        val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        } else {
+            WindowManager.LayoutParams.TYPE_PHONE
+        }
+
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            layoutFlag,
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
+        )
+        params.gravity = Gravity.TOP or Gravity.LEFT
+        // 펫 바로 아래에 메뉴를 띄운다.
+        val petParams = floatingView.layoutParams as? WindowManager.LayoutParams
+        params.x = petParams?.x ?: 0
+        params.y = (petParams?.y ?: 0) + floatingView.height
+
+        windowManager.addView(view, params)
+
+        view.findViewById<Button>(R.id.btn_talk).setOnClickListener {
+            if (isDialogueBlocked()) {
+                Toast.makeText(this, "...", Toast.LENGTH_SHORT).show()
+            } else {
+                launchApp("talk")
+            }
+            removeOverlayMenu()
+        }
+        view.findViewById<Button>(R.id.btn_status).setOnClickListener {
+            launchApp("status")
+            removeOverlayMenu()
+        }
+
+        handler.postDelayed({ removeOverlayMenu() }, MENU_AUTO_DISMISS_MS)
+    }
+
+    private fun removeOverlayMenu() {
+        val view = menuView ?: return
+        try {
+            windowManager.removeView(view)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        menuView = null
+    }
+
+    private fun launchApp(route: String) {
+        val intent = Intent(this, MainActivity::class.java)
+        intent.putExtra("overlay_route", route)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+        startActivity(intent)
+    }
+
     private val updateRunnable = object : Runnable {
         override fun run() {
             if (!isRunning) return
-            
+
             try {
                 val mmkv = MMKV.defaultMMKV()
                 val userStorageStr = mmkv?.decodeString("user-storage")
-                
+
                 if (userStorageStr != null) {
                     val jsonObj = JSONObject(userStorageStr)
                     if (jsonObj.has("state")) {
@@ -132,17 +292,17 @@ class OverlayService : Service() {
                         val petName = state.optString("petName", "Unknown")
                         val petTier = state.optInt("petTier", 0)
                         val petStage = state.optString("petStage", "egg")
-                        
+
                         val tvName = floatingView.findViewById<TextView>(R.id.tv_pet_name)
                         tvName.text = "🐾 $petName (Tier: $petTier)"
-                        
+
                         val ivAnim = floatingView.findViewById<android.widget.ImageView>(R.id.iv_pet_anim)
                         val currentTag = ivAnim.tag as? String
                         val newTag = "${petName}_${petStage}"
-                        
+
                         if (currentTag != newTag) {
                             val speciesIndex = Math.abs(petName.hashCode()) % 3
-                            
+
                             val animRes = if (petStage == "egg" || petStage == "memorial") {
                                 when (speciesIndex) {
                                     0 -> R.drawable.pet_egg_fly_anim
@@ -156,7 +316,7 @@ class OverlayService : Service() {
                                     else -> R.drawable.pet_bear_anim
                                 }
                             }
-                            
+
                             ivAnim.setBackgroundResource(animRes)
                             val animDrawable = ivAnim.background as android.graphics.drawable.AnimationDrawable
                             animDrawable.start()
@@ -177,6 +337,8 @@ class OverlayService : Service() {
         super.onDestroy()
         isRunning = false
         handler.removeCallbacks(updateRunnable)
+        longPressRunnable?.let { handler.removeCallbacks(it) }
+        removeOverlayMenu()
         if (::floatingView.isInitialized) {
             windowManager.removeView(floatingView)
         }

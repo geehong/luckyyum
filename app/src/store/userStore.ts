@@ -44,6 +44,14 @@ export interface UserState {
   playCount: number;
   cleanCount: number;
   dailyFortuneLock: { date: string; baseTier: number; isRescued: boolean } | null;
+
+  // M3 Dialogue & MBTI Personality Formation
+  mbtiScores: { E: number; I: number; S: number; N: number; T: number; F: number; J: number; P: number };
+  finalizedMbti: string | null;
+  dailyDialogueUsage: { date: string; count: number; lastDialogueTime: number } | null;
+  petCount: number;
+  answerDialogue: (traits: string[]) => void;
+  pet: () => void;
   
   // M2-1 Server Sync
   authToken: string | null;
@@ -91,6 +99,11 @@ export const useUserStore = create<UserState>()(
       authToken: null,
       memorials: [],
 
+      mbtiScores: { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 },
+      finalizedMbti: null,
+      dailyDialogueUsage: null,
+      petCount: 0,
+
       setUserProfile: (profile) => set({ userProfile: profile }),
       setAuthToken: (token) => set({ authToken: token }),
       setPetName: (name) => set({ petName: name }),
@@ -120,14 +133,22 @@ export const useUserStore = create<UserState>()(
           // 첫 접속 후 배고픈 펫에게 밥을 줬다면 운세 1단계 구제
           newLock = { ...newLock, isRescued: true, baseTier: newLock.baseTier + 1 };
         }
-        
-        return { 
-          fullness: newFullness, 
-          intimacy: newIntimacy, 
+
+        // 성체 전환 시 MBTI 확정(Locking) — 이후에는 mbtiScores가 더 쌓여도 성격이 바뀌지 않음
+        let newFinalizedMbti = state.finalizedMbti;
+        if (newStage === 'adult' && state.petStage !== 'adult' && !newFinalizedMbti) {
+          const { calculateMBTI } = require('../utils/mbtiCalculator');
+          newFinalizedMbti = calculateMBTI({ ...state, fullness: newFullness, intimacy: newIntimacy, petStage: newStage });
+        }
+
+        return {
+          fullness: newFullness,
+          intimacy: newIntimacy,
           petStage: newStage,
           lastCareTime: Date.now(),
           feedCount: state.feedCount + 1,
-          dailyFortuneLock: newLock
+          dailyFortuneLock: newLock,
+          finalizedMbti: newFinalizedMbti
         };
       }),
       
@@ -164,7 +185,46 @@ export const useUserStore = create<UserState>()(
           cleanCount: state.cleanCount + 1
         };
       }),
-      
+
+      answerDialogue: (traits: string[]) => set((state) => {
+        if (state.isDead) return {};
+
+        const today = new Date().toISOString().split('T')[0];
+        const now = Date.now();
+        const usage = state.dailyDialogueUsage && state.dailyDialogueUsage.date === today
+          ? state.dailyDialogueUsage
+          : { date: today, count: 0, lastDialogueTime: 0 };
+
+        // 스팸 방지: 1시간 쿨타임 + 일일 최대 5회
+        if (usage.count >= 5) return {};
+        if (usage.lastDialogueTime && now - usage.lastDialogueTime < 60 * 60 * 1000) return {};
+
+        const newMbtiScores = { ...state.mbtiScores };
+        traits.forEach((trait) => {
+          if (trait in newMbtiScores) {
+            (newMbtiScores as Record<string, number>)[trait] += 1;
+          }
+        });
+
+        return {
+          mbtiScores: newMbtiScores,
+          dailyDialogueUsage: { date: today, count: usage.count + 1, lastDialogueTime: now }
+        };
+      }),
+
+      pet: () => set((state) => {
+        if (state.isDead) return {};
+
+        // 친밀도가 이미 100이면 쓰다듬어도 카운트 안 오름 (기존 액션들과 동일한 무한클릭 방지 컨벤션)
+        if (state.intimacy >= 100) return {};
+
+        return {
+          intimacy: Math.min(100, state.intimacy + 5),
+          lastCareTime: Date.now(),
+          petCount: state.petCount + 1
+        };
+      }),
+
       applyDegradation: (hoursPassed: number) => set((state) => {
         if (state.isDead || hoursPassed <= 0) return {};
         
@@ -245,10 +305,14 @@ export const useUserStore = create<UserState>()(
           feedCount: 0,
           playCount: 0,
           cleanCount: 0,
-          dailyFortuneLock: null
+          dailyFortuneLock: null,
+          mbtiScores: { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 },
+          finalizedMbti: null,
+          dailyDialogueUsage: null,
+          petCount: 0
         };
       }),
-      
+
       gachaEgg: () => set((state) => {
         const petNames = ['행운이', '대박이', '쑥쑥이', '튼튼이', '반짝이', '별이', '사랑이', '복실이', '도담이', '우람이', '구름이', '보리', '코코', '달이', '해피'];
         const randomName = petNames[Math.floor(Math.random() * petNames.length)];
@@ -264,10 +328,14 @@ export const useUserStore = create<UserState>()(
           feedCount: 0,
           playCount: 0,
           cleanCount: 0,
-          dailyFortuneLock: null
+          dailyFortuneLock: null,
+          mbtiScores: { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 },
+          finalizedMbti: null,
+          dailyDialogueUsage: null,
+          petCount: 0
         };
       }),
-      
+
       resetPet: () => set({
         petStage: 'egg',
         fullness: 50,
@@ -278,7 +346,11 @@ export const useUserStore = create<UserState>()(
         feedCount: 0,
         playCount: 0,
         cleanCount: 0,
-        dailyFortuneLock: null
+        dailyFortuneLock: null,
+        mbtiScores: { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 },
+        finalizedMbti: null,
+        dailyDialogueUsage: null,
+        petCount: 0
       })
     }),
     {

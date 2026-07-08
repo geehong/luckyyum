@@ -10,6 +10,10 @@
         .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
         button { padding: 10px 15px; margin-right: 5px; cursor: pointer; }
         .log { height: 200px; overflow-y: scroll; background: #f9f9f9; padding: 10px; border: 1px solid #ddd; }
+        .dialogue-box { background: #fff8e1; border: 1px dashed #f0c040; padding: 12px; border-radius: 8px; margin: 10px 0; min-height: 60px; }
+        .choice-btn { display: block; width: 100%; text-align: left; margin: 4px 0; background: #fff; border: 1px solid #ccc; }
+        .mbti-badge { font-size: 1.1em; padding: 2px 8px; border-radius: 4px; background: #e0e0e0; }
+        .mbti-badge.locked { background: #4CAF50; color: white; }
     </style>
 </head>
 <body>
@@ -57,6 +61,19 @@
         <div class="log" id="logBox"></div>
     </div>
 
+    <div class="card">
+        <h2>대화(Talk) &amp; 쓰다듬기 — MBTI 성격 형성 (신규 기획 시뮬레이션)</h2>
+        <p>판정 MBTI: <span id="liveMbti" class="mbti-badge">-</span></p>
+        <p>오늘 대화 횟수: <span id="dialogueCount">0</span> / 5 &nbsp;|&nbsp; 쓰다듬기 누적: <span id="petCountLabel">0</span>회</p>
+        <div class="dialogue-box">
+            <p id="dialogueQuestion">'대화하기' 버튼을 눌러보세요. (Baby/Teen 단계에서는 성향 질문, Adult 단계에서는 확정된 성격의 혼잣말이 나옵니다)</p>
+            <div id="dialogueChoices"></div>
+        </div>
+        <button onclick="talk()">💬 대화하기</button>
+        <button onclick="pet()">🐾 쓰다듬기</button>
+        <p style="font-size:0.85em;color:#888;margin-top:8px;">※ 오버레이(화면 위를 돌아다니는 상태)에서는 이 두 액션이 각각 롱프레스(대화) / 짧은 탭(쓰다듬기) 제스처로 매핑될 예정입니다.</p>
+    </div>
+
 <script>
     let daysPassed = 0;
     let totalScore = 0;
@@ -69,21 +86,30 @@
 
     function updateUI() {
         document.getElementById('timeElapsed').innerText = daysPassed.toFixed(1);
-        
+
         let stage = 'Egg';
         if (daysPassed >= 90) stage = 'Memorial (Dead)';
         else if (daysPassed >= 5.5) stage = 'Adult';
         else if (daysPassed >= 2.5) stage = 'Teen';
         else if (daysPassed >= 0.5) stage = 'Baby';
-        
+
         document.getElementById('petStage').innerText = stage;
-        
+
         document.getElementById('feedCount').innerText = dailyFeeds.length;
         document.getElementById('feedAmount').innerText = dailyFeeds.reduce((a,b)=>a+b, 0);
         document.getElementById('playCount').innerText = playCount;
         document.getElementById('dirtLevel').innerText = dirtLevel;
         document.getElementById('cleanCount').innerText = cleanCount;
         document.getElementById('totalScore').innerText = totalScore.toFixed(0);
+
+        // 성체(Adult) 전환 감지 → MBTI 확정(Locking)
+        if (stage === 'Adult' && prevStage !== 'Adult' && !finalizedMbti) {
+            finalizedMbti = computeMbti();
+            log(`🔒 성체로 성장! MBTI가 [${finalizedMbti}]로 확정되었습니다.`);
+        }
+        prevStage = stage;
+
+        updateMbtiUI();
     }
 
     function log(msg) {
@@ -170,7 +196,119 @@
         dailyFeeds = [];
         playCount = 0;
         cleanCount = 0;
+        dailyDialogueCount = 0; // 대화 일일 횟수도 함께 리셋 (dailyFortuneLock과 동일한 date 리셋 패턴)
         passTime(1);
+    }
+
+    // ==== 대화(Talk) & 쓰다듬기 — MBTI 성격 형성 시뮬레이션 ====
+    const QUESTIONS = [
+        { q: "주인님이 안 놀아줘서 심심해요! 어떻게 할까요?", choices: [
+            { text: "밖으로 나가서 다른 친구를 찾아본다", trait: 'E' },
+            { text: "혼자 조용히 낮잠을 잔다", trait: 'I' },
+            { text: "주인님 옆에서 얌전히 기다린다", trait: 'J' },
+        ]},
+        { q: "낯선 장난감을 발견했어요!", choices: [
+            { text: "일단 만지고 뜯어보며 파악한다", trait: 'S' },
+            { text: "이게 뭘까 상상의 나래를 펼친다", trait: 'N' },
+            { text: "일단 무시하고 하던 일을 계속한다", trait: 'T' },
+        ]},
+        { q: "친구 펫이 실수로 내 밥을 먹었어요.", choices: [
+            { text: "논리적으로 상황을 따져 화를 낸다", trait: 'T' },
+            { text: "속상하지만 친구 마음도 이해해준다", trait: 'F' },
+            { text: "그냥 넘어가고 새로 밥을 요청한다", trait: 'P' },
+        ]},
+        { q: "주인님이 오늘 하루 계획을 물어봤어요.", choices: [
+            { text: "미리 정해둔 대로 착착 움직인다", trait: 'J' },
+            { text: "그때그때 기분따라 정한다", trait: 'P' },
+            { text: "주인님이 정해주는 대로 따른다", trait: 'F' },
+        ]},
+    ];
+
+    const ADULT_LINES = {
+        ISTJ: "주인님, 오늘 할 일은 다 하셨나요?", ISFJ: "주인님 편히 쉬세요, 제가 지켜볼게요.",
+        INFJ: "가끔 세상 모든 마음을 다 이해하고 싶어져요.", INTJ: "다음 계획은 이미 세워뒀어요.",
+        ISTP: "그거, 제가 한번 뜯어봐도 될까요?", ISFP: "오늘 하늘 색깔 진짜 예쁘네요.",
+        INFP: "주인님, 우리의 인연은 운명 같아요.", INTP: "주인님, 우주의 끝은 어디일까요?",
+        ESTP: "심심한데 밖에 나가서 뭐라도 하죠!", ESFP: "오늘 같이 신나게 놀아요!",
+        ENFP: "새로운 모험을 떠나볼까요, 주인님?", ENTP: "이거 완전 다르게 해볼 수도 있을 것 같은데요?",
+        ESTJ: "주인님, 오늘 일정 정리해드릴까요?", ESFJ: "다들 잘 지내고 있는지 걱정되네요.",
+        ENFJ: "주인님이 행복해야 저도 행복해요.", ENTJ: "제가 이 집의 계획을 이끌어볼게요."
+    };
+
+    let mbtiScores = { E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0 };
+    let finalizedMbti = null;
+    let dailyDialogueCount = 0;
+    let petCount = 0;
+    let prevStage = 'Egg';
+
+    function computeMbti() {
+        if (finalizedMbti) return finalizedMbti;
+        const pick = (a, b, tiebreak) => {
+            if (mbtiScores[a] === mbtiScores[b]) return tiebreak;
+            return mbtiScores[a] > mbtiScores[b] ? a : b;
+        };
+        // 동점 시 기존 케어 행동 클릭 횟수를 2차 가중치(타이브레이커)로 사용
+        return pick('E', 'I', playCount >= cleanCount ? 'E' : 'I')
+             + pick('S', 'N', cleanCount > 0 ? 'S' : 'N')
+             + pick('T', 'F', dailyFeeds.length > playCount ? 'T' : 'F')
+             + pick('J', 'P', 'J');
+    }
+
+    function updateMbtiUI() {
+        const badge = document.getElementById('liveMbti');
+        badge.innerText = computeMbti() + (finalizedMbti ? ' 🔒 확정' : ' (변동 가능)');
+        badge.className = 'mbti-badge' + (finalizedMbti ? ' locked' : '');
+        document.getElementById('dialogueCount').innerText = dailyDialogueCount;
+        document.getElementById('petCountLabel').innerText = petCount;
+    }
+
+    function talk() {
+        if (daysPassed >= 90) return;
+        const stage = document.getElementById('petStage').innerText;
+
+        if (stage === 'Adult') {
+            const mbti = computeMbti();
+            const line = ADULT_LINES[mbti] || "주인님, 오늘도 좋은 하루예요!";
+            document.getElementById('dialogueQuestion').innerText = `[${mbti}] ${line}`;
+            document.getElementById('dialogueChoices').innerHTML = '';
+            log(`(성체 대사) ${mbti}: ${line}`);
+            return;
+        }
+
+        if (dailyDialogueCount >= 5) {
+            document.getElementById('dialogueQuestion').innerText = "오늘은 너무 많이 대화해서 지쳤어요... (일일 한도 5회 도달)";
+            document.getElementById('dialogueChoices').innerHTML = '';
+            log('대화 실패: 일일 한도(5회) 초과 — 스팸 방지 정상 동작.');
+            return;
+        }
+
+        const qa = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+        document.getElementById('dialogueQuestion').innerText = qa.q;
+        const box = document.getElementById('dialogueChoices');
+        box.innerHTML = '';
+        qa.choices.forEach((c) => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerText = c.text;
+            btn.onclick = () => answerDialogue(c.trait, qa.q, c.text);
+            box.appendChild(btn);
+        });
+    }
+
+    function answerDialogue(trait, question, answerText) {
+        mbtiScores[trait]++;
+        dailyDialogueCount++;
+        log(`대화 선택: "${answerText}" → ${trait} 성향 +1 (현재 판정: ${computeMbti()})`);
+        document.getElementById('dialogueQuestion').innerText = "고마워요, 주인님! (다시 '대화하기'를 눌러보세요)";
+        document.getElementById('dialogueChoices').innerHTML = '';
+        updateMbtiUI();
+    }
+
+    function pet() {
+        if (daysPassed >= 90) return;
+        petCount++;
+        log(`쓰다듬기 🐾 (누적 ${petCount}회) — 친밀도 소폭 상승 (MBTI 점수에는 영향 없음)`);
+        updateMbtiUI();
     }
 </script>
 
