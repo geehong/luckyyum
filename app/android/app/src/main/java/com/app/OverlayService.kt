@@ -138,16 +138,29 @@ class OverlayService : Service() {
                         
                         val ivAnim = floatingView.findViewById<android.widget.ImageView>(R.id.iv_pet_anim)
                         val currentTag = ivAnim.tag as? String
-                        if (currentTag != petStage) {
-                            val animRes = when (petStage) {
-                                "baby" -> R.drawable.pet_dragon_anim
-                                "teen", "adult" -> R.drawable.pet_bear_anim
-                                else -> R.drawable.pet_fly_anim
+                        val newTag = "${petName}_${petStage}"
+                        
+                        if (currentTag != newTag) {
+                            val speciesIndex = Math.abs(petName.hashCode()) % 3
+                            
+                            val animRes = if (petStage == "egg" || petStage == "memorial") {
+                                when (speciesIndex) {
+                                    0 -> R.drawable.pet_egg_fly_anim
+                                    1 -> R.drawable.pet_egg_dragon_anim
+                                    else -> R.drawable.pet_egg_bear_anim
+                                }
+                            } else {
+                                when (speciesIndex) {
+                                    0 -> R.drawable.pet_fly_anim
+                                    1 -> R.drawable.pet_dragon_anim
+                                    else -> R.drawable.pet_bear_anim
+                                }
                             }
+                            
                             ivAnim.setBackgroundResource(animRes)
                             val animDrawable = ivAnim.background as android.graphics.drawable.AnimationDrawable
                             animDrawable.start()
-                            ivAnim.tag = petStage
+                            ivAnim.tag = newTag
                         }
                     }
                 }

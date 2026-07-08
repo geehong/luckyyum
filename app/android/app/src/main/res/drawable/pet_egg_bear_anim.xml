@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:oneshot="true">
+    <item android:drawable="@drawable/pet_egg_bear_01" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_02" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_03" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_04" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_05" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_06" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_07" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_08" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_09" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_10" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_11" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_12" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_13" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_14" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_15" android:duration="300" />
+    <item android:drawable="@drawable/pet_egg_bear_16" android:duration="300" />
+</animation-list>
