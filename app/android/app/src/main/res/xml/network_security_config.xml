@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  개발 백엔드(luckyyum.firemarkets.net)가 아직 HTTPS 없이 http://로만 서비스되고 있어서,
+  release 계열 빌드(usesCleartextTraffic=false)에서도 이 도메인만 예외로 cleartext를 허용한다.
+  다른 도메인의 cleartext는 계속 차단된 상태를 유지 (전역으로 풀지 않음).
+  TODO: 백엔드에 TLS(wss/https)가 붙으면 이 예외와 apiClient.ts/LiveTalkScreen.tsx의 http/ws
+  하드코딩을 함께 https/wss로 전환하고 이 파일은 제거할 것.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">luckyyum.firemarkets.net</domain>
+    </domain-config>
+</network-security-config>

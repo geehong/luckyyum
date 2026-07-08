@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
+import { AppState, SafeAreaView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
 import { useUserStore } from './src/store/userStore';
 import OverlayModuleSafe from './src/modules/OverlayModule';
 import PetRenderer from './src/components/PetRenderer';
@@ -55,12 +55,30 @@ const App = () => {
 
   useEffect(() => {
     // 오버레이 롱프레스 메뉴("말걸기"/"상태보기")를 통해 앱이 열렸다면, 해당 화면으로 바로 진입.
-    // "상태보기"는 기본 메인 화면이 이미 이 화면이므로 별도 처리 불필요.
-    OverlayModuleSafe.getInitialRoute().then((route) => {
-      if (route === 'talk') {
-        setTalkMenuVisible(true);
+    const checkOverlayRoute = () => {
+      OverlayModuleSafe.getInitialRoute().then((route) => {
+        if (route === 'talk') {
+          setTalkMenuVisible(true);
+        } else if (route === 'status') {
+          // "상태보기"는 메인 화면이 목적지이므로, 이미 열려있던 대화/안부묻기 화면이 있다면 닫는다.
+          setTalkMenuVisible(false);
+          setActiveDialogueScreen(null);
+        }
+      });
+    };
+
+    checkOverlayRoute(); // 콜드 스타트로 앱이 열린 경우
+
+    // MainActivity가 singleTask라 오버레이 메뉴로 이미 떠 있는 앱을 다시 열면(onNewIntent)
+    // 컴포넌트가 재마운트되지 않아 위 최초 체크만으로는 새 라우트를 못 잡는다.
+    // 포그라운드로 돌아올 때마다 다시 확인해서 이 문제를 보완한다.
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        checkOverlayRoute();
       }
     });
+
+    return () => subscription.remove();
   }, []);
 
   const currentMBTI = calculateMBTI(storeState);

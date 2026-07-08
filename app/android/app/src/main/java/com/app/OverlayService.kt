@@ -270,9 +270,17 @@ class OverlayService : Service() {
             PixelFormat.TRANSLUCENT
         )
         params.gravity = Gravity.TOP or Gravity.LEFT
-        // 펫 바로 아래에 메뉴를 띄운다.
+
+        // 펫 바로 아래, 가로 중앙에 맞춰 띄운다. WRAP_CONTENT라 실제 폭은 addView 전에 미리
+        // measure해야 알 수 있다 (안 그러면 펫의 왼쪽 끝에 메뉴 왼쪽 끝이 맞춰져 한쪽으로 치우쳐 보인다).
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val menuWidth = view.measuredWidth
         val petParams = floatingView.layoutParams as? WindowManager.LayoutParams
-        params.x = petParams?.x ?: 0
+        val petCenterX = (petParams?.x ?: 0) + floatingView.width / 2
+        params.x = petCenterX - menuWidth / 2
         params.y = (petParams?.y ?: 0) + floatingView.height
 
         try {

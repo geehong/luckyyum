@@ -2,24 +2,36 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="#FFFFFFFF"
-    android:padding="12dp"
+    android:background="@android:color/transparent"
     android:orientation="vertical"
-    android:elevation="8dp">
+    android:gravity="center_horizontal"
+    android:padding="4dp">
 
     <Button
         android:id="@+id/btn_talk"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="150dp"
+        android:layout_height="48dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/overlay_menu_button_bg"
+        android:elevation="6dp"
+        android:gravity="center"
+        android:includeFontPadding="false"
         android:text="💬 말걸기"
-        android:textSize="14sp"
-        android:layout_marginBottom="6dp" />
+        android:textAllCaps="false"
+        android:textColor="#FFFFFFFF"
+        android:textSize="15sp" />
 
     <Button
         android:id="@+id/btn_status"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="150dp"
+        android:layout_height="48dp"
+        android:background="@drawable/overlay_menu_button_bg"
+        android:elevation="6dp"
+        android:gravity="center"
+        android:includeFontPadding="false"
         android:text="📊 상태보기"
-        android:textSize="14sp" />
+        android:textAllCaps="false"
+        android:textColor="#FFFFFFFF"
+        android:textSize="15sp" />
 
 </LinearLayout>
