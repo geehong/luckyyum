@@ -100,6 +100,12 @@ export const useUserStore = create<UserState>()(
       
       feed: () => set((state) => {
         if (state.isDead) return {};
+        
+        // 포만감이 100이면 먹이를 줘도 카운트가 오르지 않음 (무한 클릭 방지)
+        if (state.fullness >= 100 && state.petStage !== 'egg') {
+          return {}; 
+        }
+
         const newFullness = Math.min(100, state.fullness + 20);
         const newIntimacy = Math.min(100, state.intimacy + 5);
         // 포만감이 차오르면 진화(임시 로직)
@@ -127,6 +133,12 @@ export const useUserStore = create<UserState>()(
       
       play: () => set((state) => {
         if (state.isDead) return {};
+        
+        // 친밀도가 100이거나 포만감이 너무 낮으면 놀아줄 수 없음
+        if (state.intimacy >= 100 || state.fullness <= 10) {
+          return {}; 
+        }
+
         const newIntimacy = Math.min(100, state.intimacy + 15);
         const newFullness = Math.max(0, state.fullness - 5);
         return { 
@@ -139,6 +151,12 @@ export const useUserStore = create<UserState>()(
       
       clean: () => set((state) => {
         if (state.isDead) return {};
+        
+        // 청결도가 이미 100이면 청소해도 카운트 안 오름
+        if (state.cleanliness >= 100) {
+          return {};
+        }
+
         return { 
           cleanliness: 100, 
           intimacy: Math.min(100, state.intimacy + 5), 
