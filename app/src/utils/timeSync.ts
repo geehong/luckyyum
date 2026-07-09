@@ -1,7 +1,7 @@
-import { useUserStore } from '../store/userStore';
+import { usePetStore } from '../store/petStore';
 
 export const syncOfflineTime = () => {
-  const store = useUserStore.getState();
+  const store = usePetStore.getState();
   if (store.isDead) return;
 
   const now = Date.now();
@@ -21,7 +21,7 @@ export const syncOfflineTime = () => {
 
 // 테스트를 위한 시간 여행 함수
 export const timeTravelForward = (hours: number) => {
-  const store = useUserStore.getState();
+  const store = usePetStore.getState();
   if (store.isDead) return;
   
   store.applyDegradation(hours);

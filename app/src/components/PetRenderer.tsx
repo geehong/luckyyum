@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
-import { useUserStore } from '../store/userStore';
+import { usePetStore } from '../store/petStore';
 
 const getSpeciesName = (name: string) => {
   let hash = 0;
@@ -15,37 +15,52 @@ const getSpeciesName = (name: string) => {
 };
 
 const PetRenderer = () => {
-  const { petStage, isDead, petName } = useUserStore();
+  const { petStage, isDead, petName, petBirthDate, physical_species, physical_health, env_poopCount } = usePetStore();
 
   const renderPetImage = () => {
     if (isDead || petStage === 'memorial') {
       return <Text style={styles.petText}>👻</Text>;
     }
-    
-    const species = getSpeciesName(petName);
+
+    // 3번 섹션(Option A): teen→adult 전환 시 확정된 physical_species가 있으면 그걸 쓰고,
+    // 그 전(egg/baby/junior/teen)에는 지금처럼 이름 해시로 정해지는 임시 종을 보여준다.
+    const species = physical_species ?? getSpeciesName(petName);
     let drawableName = `pet_${species}_01`;
     if (petStage === 'egg') {
       drawableName = `pet_egg_${species}_01`;
     }
 
     return (
-      <Image 
-        source={{ uri: drawableName }} 
-        style={styles.petImage} 
-        resizeMode="contain" 
+      <Image
+        source={{ uri: drawableName }}
+        style={styles.petImage}
+        resizeMode="contain"
       />
     );
   };
 
+  let ageStr = '';
+  if (petStage !== 'egg' && !isDead && petBirthDate) {
+    const daysElapsed = Math.floor((Date.now() - petBirthDate) / (1000 * 60 * 60 * 24));
+    ageStr = `(D+${daysElapsed}일)`;
+  }
+
   return (
     <View style={styles.container}>
-      {renderPetImage()}
+      <View>
+        {renderPetImage()}
+        {!isDead && physical_health === 'sick' && <Text style={styles.overlayIcon}>😷</Text>}
+        {!isDead && env_poopCount > 0 && (
+          <Text style={styles.poopBadge}>{'💩'.repeat(Math.min(env_poopCount, 3))}</Text>
+        )}
+      </View>
       <Text style={styles.stageText}>
-        {isDead ? '별이 되었습니다...' : `Stage: ${petStage.toUpperCase()}`}
+        {isDead ? '별이 되었습니다...' : `Stage: ${petStage.toUpperCase()} ${ageStr}`}
       </Text>
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -66,6 +81,18 @@ const styles = StyleSheet.create({
   petImage: {
     width: 120,
     height: 120,
+  },
+  overlayIcon: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    fontSize: 24,
+  },
+  poopBadge: {
+    position: 'absolute',
+    bottom: -4,
+    left: -4,
+    fontSize: 16,
   },
   stageText: {
     marginTop: 10,

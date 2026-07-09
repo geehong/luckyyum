@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useUserStore } from '../store/userStore';
+import { usePetStore } from '../store/petStore';
+import { useActivityStore } from '../store/activityStore';
 import dialoguesData from '../data/dialogues.json';
 
 interface DialogueChoice {
@@ -23,7 +24,8 @@ interface Props {
 }
 
 const PetDialogue = ({ visible, onClose }: Props) => {
-  const { answerDialogue, dailyDialogueUsage } = useUserStore();
+  const { answerDialogue } = usePetStore();
+  const { dailyDialogueUsage } = useActivityStore();
   const [current, setCurrent] = useState<DialogueItem | null>(null);
   const [answeredText, setAnsweredText] = useState<string | null>(null);
 

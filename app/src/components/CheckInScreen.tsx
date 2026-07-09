@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useUserStore } from '../store/userStore';
+import { usePetStore } from '../store/petStore';
 
 interface Props {
   visible: boolean;
@@ -29,13 +29,13 @@ const getCleanlinessLine = (cleanliness: number) => {
 };
 
 const CheckInScreen = ({ visible, onClose }: Props) => {
-  const { fullness, cleanliness, isDead } = useUserStore();
+  const { physical_fullness, physical_cleanliness, isDead } = usePetStore();
   const [responseText, setResponseText] = useState<string | null>(null);
 
   const questions = [
-    { label: '아픈데는 없어?', getResponse: () => getConditionLine(fullness, cleanliness, isDead) },
-    { label: '배는 안고파?', getResponse: () => getHungerLine(fullness) },
-    { label: '집은 안더러워?', getResponse: () => getCleanlinessLine(cleanliness) },
+    { label: '아픈데는 없어?', getResponse: () => getConditionLine(physical_fullness, physical_cleanliness, isDead) },
+    { label: '배는 안고파?', getResponse: () => getHungerLine(physical_fullness) },
+    { label: '집은 안더러워?', getResponse: () => getCleanlinessLine(physical_cleanliness) },
   ];
 
   const handleClose = () => {

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { AppState, SafeAreaView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
 import { useUserStore } from './src/store/userStore';
+import { usePetStore } from './src/store/petStore';
+import { useActivityStore } from './src/store/activityStore';
+import { migrateOldStorage } from './src/store/migrateStorage';
 import OverlayModuleSafe from './src/modules/OverlayModule';
 import PetRenderer from './src/components/PetRenderer';
 import PetDialogue from './src/components/PetDialogue';
@@ -11,21 +14,36 @@ import { syncOfflineTime, timeTravelForward } from './src/utils/timeSync';
 import { calculateMBTI } from './src/utils/mbtiCalculator';
 import { calculateFortuneTier, getMockFortuneText, generateTodayBaseTier } from './src/utils/fortuneLogic';
 import { fetchRankings } from './src/utils/apiClient';
+import petQuestsData from './src/data/petQuests.json';
+
+// 1. Run migration before app initializes
+migrateOldStorage();
 
 const App = () => {
-  const storeState = useUserStore();
+  const { userProfile, setUserProfile, isOverlayActive, setOverlayActive } = useUserStore();
   const {
-    petName, petTier, isOverlayActive, setOverlayActive, setPetName, setDailyFortuneLock,
-    fullness, intimacy, cleanliness, isDead, petStage, feed, play, clean, pet, resetPet, dailyFortuneLock,
-    hatchEgg, gachaEgg, memorials, syncToServer, userProfile, setUserProfile
-  } = storeState;
+    petName, setPetName, setDailyFortuneLock,
+    physical_fullness, spirit_intimacy, physical_cleanliness, physical_weight,
+    physical_health, physical_medicineDoses, spirit_happiness, spirit_activeQuest,
+    env_poopCount,
+    isDead, petStage, feed, play, clean, bathe, pet, giveMedicine, vaccinate,
+    dailyFortuneLock,
+    hatchEgg, gachaEgg, memorials, syncToServer
+  } = usePetStore();
+
+  const activeQuestText = spirit_activeQuest
+    ? petQuestsData.find((q) => q.id === spirit_activeQuest.questId)?.text ?? null
+    : null;
 
   const [isLeaderboardVisible, setLeaderboardVisible] = useState(false);
   const [isMemorialVisible, setMemorialVisible] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
 
+
   // M3 대화 & 안부 묻기 화면 라우팅 ('말걸기' 서브메뉴 → 성향대화/일상대화(Live) 또는 안부묻기)
   const [isTalkMenuVisible, setTalkMenuVisible] = useState(false);
+  const [isRenameVisible, setRenameVisible] = useState(false);
+  const [renameInput, setRenameInput] = useState('');
   const [activeDialogueScreen, setActiveDialogueScreen] = useState<'personality' | 'checkin' | 'live' | null>(null);
 
   // Setup Screen state
@@ -81,8 +99,8 @@ const App = () => {
     return () => subscription.remove();
   }, []);
 
-  const currentMBTI = calculateMBTI(storeState);
-  const finalFortuneTier = calculateFortuneTier(storeState, dailyFortuneLock ? dailyFortuneLock.baseTier : 3);
+  const currentMBTI = calculateMBTI(usePetStore.getState());
+  const finalFortuneTier = calculateFortuneTier(usePetStore.getState(), dailyFortuneLock ? dailyFortuneLock.baseTier : 3);
   const fortuneText = getMockFortuneText(finalFortuneTier, '甲', '子');
 
   const toggleOverlay = async (value: boolean) => {
@@ -112,8 +130,18 @@ const App = () => {
   };
 
   const changePetName = () => {
-    const newName = petName === 'Lucky' ? 'Happy' : 'Lucky';
-    setPetName(newName);
+    setRenameInput(petName);
+    setRenameVisible(true);
+  };
+
+  const handleSavePetName = () => {
+    const { isValidName } = require('./src/utils/nameFilter');
+    if (!isValidName(renameInput)) {
+      Alert.alert('경고', '이름에 사용할 수 없는 단어가 포함되어 있습니다.');
+      return;
+    }
+    setPetName(renameInput.trim());
+    setRenameVisible(false);
   };
 
   const openTalkMenu = () => setTalkMenuVisible(true);
@@ -130,16 +158,38 @@ const App = () => {
 
   const closeDialogueScreen = () => setActiveDialogueScreen(null);
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!setupBirthDate || !setupBirthTime) {
       Alert.alert('알림', '생년월일과 태어난 시간을 모두 입력해주세요.');
       return;
     }
-    setUserProfile({
-      birthDate: setupBirthDate,
-      birthTime: setupBirthTime,
-      gender: setupGender
-    });
+    
+    try {
+      const uuidStr = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const { registerGuest, updateProfile } = require('./src/utils/apiClient');
+      
+      const { access_token } = await registerGuest(uuidStr);
+      useUserStore.getState().setAuthToken(access_token);
+      
+      const year = parseInt(setupBirthDate.split('-')[0], 10);
+      const currentYear = new Date().getFullYear();
+      const age = currentYear - year;
+      const age_group = `${Math.floor(age / 10) * 10}s`;
+      
+      await updateProfile(access_token, {
+        age_group,
+        gender: setupGender,
+      });
+
+      setUserProfile({
+        birthDate: setupBirthDate,
+        birthTime: setupBirthTime,
+        gender: setupGender
+      });
+    } catch (e) {
+      console.error('[App] handleSaveProfile error:', e);
+      Alert.alert('오류', '네트워크 연결을 확인해주세요.');
+    }
   };
 
   if (!userProfile) {
@@ -182,17 +232,29 @@ const App = () => {
       <View style={styles.headerRow}>
         <Text style={styles.title}>LuckyYum (In-App)</Text>
         <View style={styles.headerButtons}>
+          <Button title="✏️" onPress={changePetName} />
           <Button title="🏆" onPress={openLeaderboard} />
+
           <Button title="📖" onPress={() => setMemorialVisible(true)} />
         </View>
       </View>
 
       <PetRenderer />
 
+      {activeQuestText && (
+        <View style={styles.questBanner}>
+          <Text style={styles.questText}>💬 {activeQuestText}</Text>
+        </View>
+      )}
+
       <View style={styles.statsCard}>
-        <Text style={styles.statText}>🍖 Fullness: {fullness}/100</Text>
-        <Text style={styles.statText}>💖 Intimacy: {intimacy}/100</Text>
-        <Text style={styles.statText}>✨ Cleanliness: {cleanliness}/100</Text>
+        <Text style={styles.statText}>🍖 Fullness: {physical_fullness}/100</Text>
+        <Text style={styles.statText}>💖 Intimacy: {spirit_intimacy}/100</Text>
+        <Text style={styles.statText}>✨ Cleanliness: {physical_cleanliness}/100</Text>
+        <Text style={styles.statText}>⚖️ Weight: {physical_weight}/100</Text>
+        <Text style={styles.statText}>😊 Happiness: {spirit_happiness}/100</Text>
+        {env_poopCount > 0 && <Text style={styles.statText}>💩 응가: {env_poopCount}개</Text>}
+        <Text style={styles.statText}>{physical_health === 'sick' ? '🤒 건강: 아픔' : '💪 건강: 양호'}</Text>
         <Text style={styles.mbtiText}>🧠 MBTI: {currentMBTI}</Text>
       </View>
 
@@ -226,6 +288,21 @@ const App = () => {
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton} onPress={pet}>
                 <Text style={styles.actionText}>쓰다듬기 🤗</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton} onPress={bathe}>
+                <Text style={styles.actionText}>목욕시키기 🛁</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {petStage !== 'egg' && (
+            <View style={styles.actionRow}>
+              {physical_health === 'sick' && (
+                <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#E53935' }]} onPress={giveMedicine}>
+                  <Text style={styles.actionText}>약주기 💊 ({physical_medicineDoses}/2)</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#00897B' }]} onPress={vaccinate}>
+                <Text style={styles.actionText}>예방접종 💉</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -279,6 +356,24 @@ const App = () => {
         </SafeAreaView>
       </Modal>
 
+      <Modal visible={isRenameVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.renameCard}>
+            <Text style={styles.title}>펫 이름 변경</Text>
+            <TextInput
+              style={styles.renameInput}
+              value={renameInput}
+              onChangeText={setRenameInput}
+              placeholder="새 이름을 입력하세요"
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 }}>
+              <Button title="취소" color="#888" onPress={() => setRenameVisible(false)} />
+              <Button title="저장" onPress={handleSavePetName} />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <TalkMenuScreen
         visible={isTalkMenuVisible}
         onClose={() => setTalkMenuVisible(false)}
@@ -311,6 +406,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  questBanner: {
+    backgroundColor: '#FFF3E0',
+    borderColor: '#FFB74D',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 15,
+  },
+  questText: {
+    fontSize: 14,
+    color: '#E65100',
+    fontWeight: 'bold',
   },
   headerButtons: {
     flexDirection: 'row',
@@ -387,6 +495,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     elevation: 3,
   },
+  
+  modalOverlay: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center'
+  },
+  renameCard: {
+    width: '80%', backgroundColor: '#fff', borderRadius: 15, padding: 20, elevation: 5
+  },
+  renameInput: {
+    borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginVertical: 15
+  },
+
   modalContainer: {
     flex: 1,
     padding: 20,

@@ -34,3 +34,43 @@ export const fetchRankings = async () => {
     throw error;
   }
 };
+
+export const registerGuest = async (uuidStr: string) => {
+  try {
+    const response = await apiClient.post('/api/auth/register', {
+      username: `guest_${uuidStr}`,
+      password: uuidStr,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to register guest:', error);
+    throw error;
+  }
+};
+
+export const updateProfile = async (token: string, profile: { age_group?: string; gender?: string; country?: string }) => {
+  try {
+    const response = await apiClient.put('/api/auth/profile', profile, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to update profile:', error);
+    throw error;
+  }
+};
+
+export const sendActivityLogs = async (token: string, logs: any[]) => {
+  try {
+    // 벡엔드 API가 아직 없으므로 콘솔 로그로 대체합니다.
+    console.log('[Mock API] sendActivityLogs called with', logs.length, 'logs.');
+    // const response = await apiClient.post('/api/activity', { logs }, { headers: { Authorization: `Bearer ${token}` } });
+    // return response.data;
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send activity logs:', error);
+    throw error;
+  }
+};

@@ -1,0 +1,52 @@
+[
+  {
+    "id": "quest-hungry-01",
+    "trigger": "fullness_low",
+    "text": "배고파요... 밥 주세요 🥺",
+    "resolveAction": "feed"
+  },
+  {
+    "id": "quest-hungry-02",
+    "trigger": "fullness_low",
+    "text": "꼬르륵... 밥 먹을 시간 아니에요?",
+    "resolveAction": "feed"
+  },
+  {
+    "id": "quest-walk-01",
+    "trigger": "play_neglected",
+    "text": "산책 가고 싶어요! 같이 나가요 🐾",
+    "resolveAction": "play",
+    "mbtiAffinity": ["ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"]
+  },
+  {
+    "id": "quest-walk-02",
+    "trigger": "play_neglected",
+    "text": "음... 그냥 저 여기서 조용히 기다릴게요.",
+    "resolveAction": "play",
+    "mbtiAffinity": ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP"]
+  },
+  {
+    "id": "quest-mood-01",
+    "trigger": "happiness_low",
+    "text": "기분이 안좋아요... 같이 놀아줄래요? 😢",
+    "resolveAction": "play"
+  },
+  {
+    "id": "quest-mood-02",
+    "trigger": "happiness_low",
+    "text": "괜히 시무룩하네요... 쓰다듬어 주실래요?",
+    "resolveAction": "pet"
+  },
+  {
+    "id": "quest-bath-01",
+    "trigger": "cleanliness_low",
+    "text": "몸이 좀 찝찝해요... 목욕시켜 주세요 🛁",
+    "resolveAction": "bathe"
+  },
+  {
+    "id": "quest-poop-01",
+    "trigger": "poop_high",
+    "text": "여기 좀 지저분해졌어요... 청소해 주실래요? 🧹",
+    "resolveAction": "clean"
+  }
+]

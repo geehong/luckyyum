@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useUserStore } from '../store/userStore';
+import { usePetStore } from '../store/petStore';
 
 interface Props {
   visible: boolean;
@@ -10,7 +10,7 @@ interface Props {
 }
 
 const TalkMenuScreen = ({ visible, onClose, onSelectPersonality, onSelectCheckIn }: Props) => {
-  const { petStage } = useUserStore();
+  const { petStage } = usePetStore();
   const isAdult = petStage === 'adult';
 
   return (

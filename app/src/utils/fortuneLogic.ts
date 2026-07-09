@@ -1,4 +1,4 @@
-import { UserState, UserProfile } from '../store/userStore';
+import { UserProfile } from '../store/userStore';
 import { getManseryeokData } from './manseryeok';
 
 // 프로필 정보를 바탕으로 오늘의 베이스 사주 등급을 계산 (1~5)
@@ -29,23 +29,34 @@ export const generateTodayBaseTier = (profile: UserProfile): number => {
   }
 };
 
-export const calculateFortuneTier = (store: UserState, baseSajuTier: number): number => {
-  const { fullness, intimacy, dailyFortuneLock } = store;
-  
+import { PetState } from '../store/petStore';
+import {
+  FORTUNE_GOOD_HAPPINESS_THRESHOLD,
+  FORTUNE_GOOD_TIER_FLOOR,
+  FORTUNE_BAD_HAPPINESS_THRESHOLD,
+  FORTUNE_BAD_TIER_CEILING,
+} from '../config/gameBalance';
+
+// 10번 섹션: 운세는 spirit_happiness(케어 상태 종합 지표)에 의해서만 양방향으로 영향받는다.
+// 반대 방향(운세 → 스탯)은 절대 없다 — 이 함수는 순수 함수로, 어떤 스탯도 다시 쓰지 않는다.
+export const calculateFortuneTier = (store: PetState, baseSajuTier: number): number => {
+  const { spirit_happiness, dailyFortuneLock } = store;
+
   // 1. 일일 락이 걸려있는지 확인
   const today = new Date().toISOString().split('T')[0];
   let currentTier = baseSajuTier;
-  
+
   if (dailyFortuneLock && dailyFortuneLock.date === today) {
     currentTier = dailyFortuneLock.baseTier;
   }
-  
-  // 2. 바닥 방어 로직 (돌봄 우수 시)
-  // 기획: 포만감>70 && 친밀도>60 이면 운세 등급 최소 3 보장
-  if (fullness > 70 && intimacy > 60) {
-    currentTier = Math.max(currentTier, 3);
+
+  // 2. 양방향 연동: 잘 돌보면 좋은 운세를 보장, 방치하면 나쁜 운세로 눌림
+  if (spirit_happiness >= FORTUNE_GOOD_HAPPINESS_THRESHOLD) {
+    currentTier = Math.max(currentTier, FORTUNE_GOOD_TIER_FLOOR);
+  } else if (spirit_happiness <= FORTUNE_BAD_HAPPINESS_THRESHOLD) {
+    currentTier = Math.min(currentTier, FORTUNE_BAD_TIER_CEILING);
   }
-  
+
   return currentTier;
 };
 

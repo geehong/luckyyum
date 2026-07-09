@@ -11,10 +11,11 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useUserStore } from '../store/userStore';
+import { usePetStore } from '../store/petStore';
 import { getAdultFallbackLine } from '../data/adultFallbackLines';
 
 // backend/app/routers/live.py 의 /ws/live-talk 릴레이. Gemini API 키는 서버가 들고 있음.
-const WS_URL = 'ws://luckyyum.firemarkets.net/ws/live-talk';
+const WS_URL = 'wss://luckyyum.firemarkets.net/ws/live-talk';
 const CONNECT_TIMEOUT_MS = 5000;
 
 interface Message {
@@ -29,7 +30,16 @@ interface Props {
 }
 
 const LiveTalkScreen = ({ visible, onClose }: Props) => {
-  const { finalizedMbti } = useUserStore();
+  const { userProfile } = useUserStore();
+  const {
+    spirit_finalizedMbti: finalizedMbti,
+    petName,
+    petStage,
+    physical_fullness: fullness,
+    spirit_intimacy: intimacy,
+    physical_cleanliness: cleanliness,
+    dailyFortuneLock,
+  } = usePetStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [status, setStatus] = useState<'connecting' | 'connected' | 'fallback'>('connecting');
@@ -67,7 +77,17 @@ const LiveTalkScreen = ({ visible, onClose }: Props) => {
       clearTimeout(timeoutId);
       if (timedOut) return;
       setStatus('connected');
-      ws.send(JSON.stringify({ type: 'init', mbti: finalizedMbti }));
+      ws.send(JSON.stringify({ 
+        type: 'init', 
+        mbti: finalizedMbti,
+        petName,
+        petStage,
+        fullness,
+        intimacy,
+        cleanliness,
+        userName: '주인',
+        fortuneTier: dailyFortuneLock?.baseTier || 3
+      }));
     };
 
     ws.onmessage = (event) => {
