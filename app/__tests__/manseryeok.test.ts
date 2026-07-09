@@ -1,4 +1,4 @@
-import { getManseryeokData } from '../utils/manseryeok';
+import { getManseryeokData } from '../src/utils/manseryeok';
 
 describe('Manseryeok Edge Case Tests', () => {
   it('자시(23:00~01:00) 입력 시 일주(day)가 정상적으로 익일로 넘어가는지 테스트', () => {

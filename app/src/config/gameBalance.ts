@@ -71,3 +71,31 @@ export const FORTUNE_GOOD_HAPPINESS_THRESHOLD = 70;
 export const FORTUNE_GOOD_TIER_FLOOR = 4;
 export const FORTUNE_BAD_HAPPINESS_THRESHOLD = 30;
 export const FORTUNE_BAD_TIER_CEILING = 2;
+
+// ── 11번: 밥주기 시간대 슬롯 + 가챠 추측 미니게임 ──────────────────────
+export interface MealSlot {
+  id: 'breakfast' | 'lunch' | 'dinner';
+  label: string;
+  startHour: number; // inclusive
+  endHour: number;   // exclusive
+}
+export const MEAL_SLOTS: MealSlot[] = [
+  { id: 'breakfast', label: '아침', startHour: 5, endHour: 11 },
+  { id: 'lunch', label: '점심', startHour: 11, endHour: 17 },
+  { id: 'dinner', label: '저녁', startHour: 17, endHour: 23 },
+];
+export const MEAL_GACHA_CHOICE_COUNT = 3;
+export const MEAL_OPTIMAL_MIN = 18;
+export const MEAL_OPTIMAL_MAX = 32;
+export const MEAL_GACHA_MIN_AMOUNT = 15;
+export const MEAL_GACHA_MAX_AMOUNT = 40;
+export const MEAL_SCORE_BEST_DIFF = 3;
+export const MEAL_SCORE_OK_DIFF = 8;
+export const MEAL_WEIGHT_DELTA_MILD = 2;
+export const MEAL_WEIGHT_DELTA_LARGE = 5;
+export const HATCH_FULLNESS_GAIN = 20; // 알→아기 부화는 여전히 단순 1탭(가챠 없음)
+export const HATCH_WEIGHT_GAIN = 8;
+
+// ── 11번: 펫 퀘스트 하루 예산제 ─────────────────────────────────────────
+export const DAILY_QUEST_TARGET_MIN = 3;
+export const DAILY_QUEST_TARGET_MAX = 5;

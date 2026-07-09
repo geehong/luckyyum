@@ -6,9 +6,19 @@ const quests: QuestDef[] = [
   { id: 'q-walk-e', trigger: 'play_neglected', text: '나가요!', resolveAction: 'play', mbtiAffinity: ['ESTP'] },
   { id: 'q-walk-i', trigger: 'play_neglected', text: '조용히 기다릴게요', resolveAction: 'play', mbtiAffinity: ['ISTP'] },
   { id: 'q-mood', trigger: 'happiness_low', text: '기분이 안좋아요', resolveAction: 'pet' },
+  { id: 'q-vaccine', trigger: 'vaccine_due', text: '예방접종 맞을 때예요', resolveAction: 'vaccinate' },
 ];
 
-const calmCtx = { fullness: 80, happiness: 80, cleanliness: 80, poopCount: 0, hoursSinceLastPlay: 0 };
+const NOW = 1_700_000_000_000;
+const calmCtx = {
+  fullness: 80,
+  happiness: 80,
+  cleanliness: 80,
+  poopCount: 0,
+  hoursSinceLastPlay: 0,
+  vaccinatedUntil: NOW + 7 * 24 * 60 * 60 * 1000, // 접종 유효기간 중 -> vaccine_due 트리거 안 됨
+  now: NOW,
+};
 
 describe('getEligibleQuests', () => {
   it('returns nothing when no trigger condition is met', () => {
@@ -23,6 +33,12 @@ describe('getEligibleQuests', () => {
   it('can return multiple eligible quests at once', () => {
     const eligible = getEligibleQuests(quests, { ...calmCtx, hoursSinceLastPlay: 999 });
     expect(eligible.map((q) => q.id).sort()).toEqual(['q-walk-e', 'q-walk-i']);
+  });
+
+  it('triggers the vaccine quest when never vaccinated or protection has lapsed (11번)', () => {
+    expect(getEligibleQuests(quests, { ...calmCtx, vaccinatedUntil: null }).map((q) => q.id)).toEqual(['q-vaccine']);
+    expect(getEligibleQuests(quests, { ...calmCtx, vaccinatedUntil: NOW - 1 }).map((q) => q.id)).toEqual(['q-vaccine']);
+    expect(getEligibleQuests(quests, calmCtx)).toHaveLength(0); // 아직 유효기간 중
   });
 });
 

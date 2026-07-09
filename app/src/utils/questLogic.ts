@@ -18,9 +18,12 @@ export type QuestTrigger =
   | 'play_neglected'
   | 'happiness_low'
   | 'cleanliness_low'
-  | 'poop_high';
+  | 'poop_high'
+  | 'vaccine_due';
 
-export type QuestResolveAction = 'feed' | 'play' | 'pet' | 'bathe' | 'clean';
+// 11번 섹션: 청소/목욕/예방접종/놀아주기/쓰다듬기는 이제 상시 버튼이 아니라 이 5개 액션만
+// 퀘스트로 해결 가능 (giveMedicine은 이미 "아플 때만" 조건부 상시 버튼이라 대상에서 제외).
+export type QuestResolveAction = 'feed' | 'play' | 'pet' | 'bathe' | 'clean' | 'vaccinate';
 
 export interface QuestDef {
   id: string;
@@ -36,6 +39,8 @@ export interface QuestTriggerContext {
   cleanliness: number;
   poopCount: number;
   hoursSinceLastPlay: number | null;
+  vaccinatedUntil: number | null;
+  now: number;
 }
 
 function isTriggered(quest: QuestDef, ctx: QuestTriggerContext): boolean {
@@ -50,6 +55,8 @@ function isTriggered(quest: QuestDef, ctx: QuestTriggerContext): boolean {
       return ctx.cleanliness < CLEANLINESS_DIRTY;
     case 'poop_high':
       return ctx.poopCount >= POOP_NEGLECT_THRESHOLD_COUNT;
+    case 'vaccine_due':
+      return ctx.vaccinatedUntil === null || ctx.now > ctx.vaccinatedUntil;
     default:
       return false;
   }

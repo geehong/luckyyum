@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { usePetStore } from '../store/petStore';
 
@@ -14,21 +14,51 @@ const getSpeciesName = (name: string) => {
   return 'bear';
 };
 
+// android/app/src/main/res/drawable의 pet_{species}_01..NN.png(egg는 pet_egg_{species}_01..NN.png)
+// 프레임 시퀀스 + 각 species의 *_anim.xml에 박제된 프레임 지속시간(ms)과 동일한 값.
+const IDLE_ANIM_CONFIG: Record<string, { frames: number; durationMs: number }> = {
+  bear: { frames: 12, durationMs: 150 },
+  dragon: { frames: 12, durationMs: 150 },
+  fly: { frames: 12, durationMs: 150 },
+  egg_bear: { frames: 16, durationMs: 300 },
+  egg_dragon: { frames: 12, durationMs: 300 },
+  egg_fly: { frames: 16, durationMs: 300 },
+};
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
 const PetRenderer = () => {
   const { petStage, isDead, petName, petBirthDate, physical_species, physical_health, env_poopCount } = usePetStore();
 
+  // 3번 섹션(Option A): teen→adult 전환 시 확정된 physical_species가 있으면 그걸 쓰고,
+  // 그 전(egg/baby/junior/teen)에는 지금처럼 이름 해시로 정해지는 임시 종을 보여준다.
+  const species = physical_species ?? getSpeciesName(petName);
+  const isAnimated = !isDead && petStage !== 'memorial';
+  const animKey = petStage === 'egg' ? `egg_${species}` : species;
+
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    setFrame(0);
+    if (!isAnimated) return;
+    const config = IDLE_ANIM_CONFIG[animKey];
+    if (!config) return;
+
+    let i = 0;
+    const id = setInterval(() => {
+      i = (i + 1) % config.frames;
+      setFrame(i);
+    }, config.durationMs);
+    return () => clearInterval(id);
+  }, [animKey, isAnimated]);
+
   const renderPetImage = () => {
-    if (isDead || petStage === 'memorial') {
+    if (!isAnimated) {
       return <Text style={styles.petText}>👻</Text>;
     }
 
-    // 3번 섹션(Option A): teen→adult 전환 시 확정된 physical_species가 있으면 그걸 쓰고,
-    // 그 전(egg/baby/junior/teen)에는 지금처럼 이름 해시로 정해지는 임시 종을 보여준다.
-    const species = physical_species ?? getSpeciesName(petName);
-    let drawableName = `pet_${species}_01`;
-    if (petStage === 'egg') {
-      drawableName = `pet_egg_${species}_01`;
-    }
+    const drawableName = petStage === 'egg'
+      ? `pet_egg_${species}_${pad2(frame + 1)}`
+      : `pet_${species}_${pad2(frame + 1)}`;
 
     return (
       <Image

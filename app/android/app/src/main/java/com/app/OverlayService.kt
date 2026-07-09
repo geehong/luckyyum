@@ -28,7 +28,28 @@ class OverlayService : Service() {
     companion object {
         // adb logcat -s LuckyYumOverlay 로 이 태그만 걸러서 볼 수 있다.
         private const val TAG = "LuckyYumOverlay"
+
+        // migrateStorage.ts가 마이그레이션 후 지워버리는 옛 단일 "user-storage" 키 대신,
+        // 지금은 petStore.ts/activityStore.ts가 각각 이 두 키에 분리 저장한다.
+        private const val PET_STORE_KEY = "luckyyum-pet-store"
+        private const val ACTIVITY_STORE_KEY = "luckyyum-activity-store"
+
+        // 펫 화면 시간 분해(먹는거 > 자는거 > 노는거 > 평소모습, 우선순위 순).
+        private const val EAT_DURATION_MS = 10 * 60 * 1000L // 밥 준 뒤 10분
+
+        // 밤잠: 23~05시(6시간, gameBalance.ts MEAL_SLOTS의 "밥때 아닌 시간대"와 동일).
+        private const val NIGHT_SLEEP_START_HOUR = 23
+        private const val NIGHT_SLEEP_END_HOUR = 5
+        // 낮잠: 오전 09~12시 + 오후 14~17시(각 3시간) = 밤잠 6시간과 합쳐 하루 총 12시간 수면.
+        private val NAP_WINDOWS = listOf(9 to 12, 14 to 17)
+
+        // 노는거: 정각 기준 하루 6번(06/09/12/15/18/21시), 매번 3분씩 — 스탯에 영향 없는 순수 연출용이라
+        // 퀘스트 시스템처럼 상태 저장이 필요한 랜덤 예산제 대신 시계만 보고 계산되는 고정 슬롯으로 둔다.
+        private val PLAY_BURST_HOURS = setOf(6, 9, 12, 15, 18, 21)
+        private const val PLAY_BURST_DURATION_MIN = 3
     }
+
+    private enum class PetVisualState { EAT, SLEEP, PLAY, IDLE }
 
     private lateinit var windowManager: WindowManager
     private lateinit var floatingView: View
@@ -199,28 +220,41 @@ class OverlayService : Service() {
         animDrawable.start()
     }
 
-    /** MMKV의 user-storage JSON을 읽어 수정 후 다시 쓴다 (updateRunnable의 파싱 패턴과 동일). */
-    private fun updateUserStorageState(mutate: (JSONObject) -> Unit) {
+    /** MMKV의 luckyyum-pet-store JSON을 읽어 수정 후 다시 쓴다 (updateRunnable의 파싱 패턴과 동일). */
+    private fun updatePetStoreState(mutate: (JSONObject) -> Unit) {
         try {
             val mmkv = MMKV.defaultMMKV()
-            val userStorageStr = mmkv?.decodeString("user-storage") ?: return
-            val jsonObj = JSONObject(userStorageStr)
+            val petStoreStr = mmkv?.decodeString(PET_STORE_KEY) ?: return
+            val jsonObj = JSONObject(petStoreStr)
             if (!jsonObj.has("state")) return
             val state = jsonObj.getJSONObject("state")
             mutate(state)
-            mmkv?.encode("user-storage", jsonObj.toString())
+            mmkv?.encode(PET_STORE_KEY, jsonObj.toString())
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    /** 쓰다듬기: intimacy +5(상한 100), petCount +1. (userStore.ts의 pet() 액션과 동일 규칙) */
+    // 11번 섹션(스팸 클릭 방지) 이후 앱 쪽 pet()은 spirit_activeQuest가 'pet'으로 해결되는 퀘스트일
+    // 때만 동작한다. 오버레이 탭도 같은 파일 안의 petQuests.json을 그대로 들고 있진 않지만, 최소한
+    // "매칭 퀘스트가 떠 있을 때만" 조건은 지켜서 오버레이가 스팸 우회로가 되지 않게 막는다.
+    // resolveAction === 'pet'인 퀘스트 id는 app/src/data/petQuests.json 기준 quest-mood-02뿐이다.
+    private val PET_RESOLVE_QUEST_IDS = setOf("quest-mood-02")
+
+    /** 쓰다듬기: 'pet' 퀘스트가 떠 있을 때만 intimacy +8, petCount +1. (petStore.ts의 pet() 액션과 동일 규칙) */
     private fun triggerPetAction() {
-        updateUserStorageState { state ->
-            val intimacy = state.optInt("intimacy", 50)
+        updatePetStoreState { state ->
+            val activeQuest = state.optJSONObject("spirit_activeQuest")
+            val questId = activeQuest?.optString("questId")
+            if (questId == null || !PET_RESOLVE_QUEST_IDS.contains(questId)) {
+                Log.d(TAG, "triggerPetAction — no matching active 'pet' quest, no-op")
+                return@updatePetStoreState
+            }
+            val intimacy = state.optInt("spirit_intimacy", 50)
             val petCount = state.optInt("petCount", 0)
-            state.put("intimacy", Math.min(100, intimacy + 5))
+            state.put("spirit_intimacy", Math.min(100, intimacy + 8))
             state.put("petCount", petCount + 1)
+            state.put("spirit_activeQuest", JSONObject.NULL)
         }
         // TODO: 하트 파티클 등 가벼운 네이티브 애니메이션 (향후 작업)
     }
@@ -228,9 +262,9 @@ class OverlayService : Service() {
     /** dailyDialogueUsage(date/count/lastDialogueTime)를 검사해 대화 가능 여부 반환. */
     private fun isDialogueBlocked(): Boolean {
         val mmkv = MMKV.defaultMMKV()
-        val userStorageStr = mmkv?.decodeString("user-storage") ?: return false
+        val activityStoreStr = mmkv?.decodeString(ACTIVITY_STORE_KEY) ?: return false
         return try {
-            val state = JSONObject(userStorageStr).optJSONObject("state") ?: return false
+            val state = JSONObject(activityStoreStr).optJSONObject("state") ?: return false
             val usage = state.optJSONObject("dailyDialogueUsage") ?: return false
 
             val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
@@ -327,50 +361,94 @@ class OverlayService : Service() {
         startActivity(intent)
     }
 
+    /** 3번 섹션: teen→adult에서 확정된 physical_species가 있으면 그걸, 없으면 이름 해시로 임시 종을 정한다. */
+    private fun resolveSpecies(petName: String, lockedSpecies: String?): String {
+        if (!lockedSpecies.isNullOrEmpty()) return lockedSpecies
+        val speciesIndex = Math.abs(petName.hashCode()) % 3
+        return when (speciesIndex) {
+            0 -> "fly"
+            1 -> "dragon"
+            else -> "bear"
+        }
+    }
+
+    /** 먹는거(이벤트, 10분) > 자는거(밤잠 23~05시 + 낮잠 09~12/14~17시, 총 12시간) > 노는거(정각 6회, 3분씩) > 평소모습. */
+    private fun computeVisualState(lastMealTimeMs: Long?): PetVisualState {
+        val now = System.currentTimeMillis()
+        if (lastMealTimeMs != null && lastMealTimeMs > 0 && now - lastMealTimeMs < EAT_DURATION_MS) {
+            return PetVisualState.EAT
+        }
+
+        val cal = java.util.Calendar.getInstance()
+        val hour = cal.get(java.util.Calendar.HOUR_OF_DAY)
+        val minute = cal.get(java.util.Calendar.MINUTE)
+
+        val isNightSleep = hour >= NIGHT_SLEEP_START_HOUR || hour < NIGHT_SLEEP_END_HOUR
+        val isNap = NAP_WINDOWS.any { (start, end) -> hour >= start && hour < end }
+        if (isNightSleep || isNap) return PetVisualState.SLEEP
+
+        if (PLAY_BURST_HOURS.contains(hour) && minute < PLAY_BURST_DURATION_MIN) return PetVisualState.PLAY
+
+        return PetVisualState.IDLE
+    }
+
+    /** eat/play/sleep은 이번에 새로 만든 pet_{species}_{kind}_anim 리소스, egg/memorial은 기존 알 애니메이션. */
+    private fun animResourceName(species: String, petStage: String, visualState: PetVisualState): String {
+        if (petStage == "egg" || petStage == "memorial") return "pet_egg_${species}_anim"
+        return when (visualState) {
+            PetVisualState.EAT -> "pet_${species}_eat_anim"
+            PetVisualState.SLEEP -> "pet_${species}_sleep_anim"
+            PetVisualState.PLAY -> "pet_${species}_play_anim"
+            PetVisualState.IDLE -> "pet_${species}_anim"
+        }
+    }
+
     private val updateRunnable = object : Runnable {
         override fun run() {
             if (!isRunning) return
 
             try {
                 val mmkv = MMKV.defaultMMKV()
-                val userStorageStr = mmkv?.decodeString("user-storage")
+                val petStoreStr = mmkv?.decodeString(PET_STORE_KEY)
 
-                if (userStorageStr != null) {
-                    val jsonObj = JSONObject(userStorageStr)
+                if (petStoreStr != null) {
+                    val jsonObj = JSONObject(petStoreStr)
                     if (jsonObj.has("state")) {
                         val state = jsonObj.getJSONObject("state")
                         val petName = state.optString("petName", "Unknown")
                         val petTier = state.optInt("petTier", 0)
                         val petStage = state.optString("petStage", "egg")
+                        val lockedSpecies: String? = if (state.has("physical_species") && !state.isNull("physical_species")) {
+                            state.optString("physical_species")
+                        } else null
 
                         val tvName = floatingView.findViewById<TextView>(R.id.tv_pet_name)
                         tvName.text = "🐾 $petName (Tier: $petTier)"
 
+                        // 11번 섹션: spirit_mealLog의 마지막 급여 시각으로 "먹는거" 상태를 판정한다.
+                        val mealLog = state.optJSONArray("spirit_mealLog")
+                        val lastMealTime = if (mealLog != null && mealLog.length() > 0) {
+                            val t = mealLog.getJSONObject(mealLog.length() - 1).optLong("time", -1L)
+                            if (t > 0) t else null
+                        } else null
+
+                        val species = resolveSpecies(petName, lockedSpecies)
+                        val visualState = computeVisualState(lastMealTime)
+                        val resName = animResourceName(species, petStage, visualState)
+
                         val ivAnim = floatingView.findViewById<android.widget.ImageView>(R.id.iv_pet_anim)
                         val currentTag = ivAnim.tag as? String
-                        val newTag = "${petName}_${petStage}"
 
-                        if (currentTag != newTag) {
-                            val speciesIndex = Math.abs(petName.hashCode()) % 3
-
-                            val animRes = if (petStage == "egg" || petStage == "memorial") {
-                                when (speciesIndex) {
-                                    0 -> R.drawable.pet_egg_fly_anim
-                                    1 -> R.drawable.pet_egg_dragon_anim
-                                    else -> R.drawable.pet_egg_bear_anim
-                                }
+                        if (currentTag != resName) {
+                            val resId = resources.getIdentifier(resName, "drawable", packageName)
+                            if (resId != 0) {
+                                ivAnim.setBackgroundResource(resId)
+                                val animDrawable = ivAnim.background as android.graphics.drawable.AnimationDrawable
+                                animDrawable.start()
+                                ivAnim.tag = resName
                             } else {
-                                when (speciesIndex) {
-                                    0 -> R.drawable.pet_fly_anim
-                                    1 -> R.drawable.pet_dragon_anim
-                                    else -> R.drawable.pet_bear_anim
-                                }
+                                Log.w(TAG, "updateRunnable — missing drawable resource: $resName")
                             }
-
-                            ivAnim.setBackgroundResource(animRes)
-                            val animDrawable = ivAnim.background as android.graphics.drawable.AnimationDrawable
-                            animDrawable.start()
-                            ivAnim.tag = newTag
                         }
                     }
                 }

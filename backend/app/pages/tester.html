@@ -1,316 +1,1973 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LuckyYum Care Algorithm Simulator</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 800px; margin: auto; }
-        .card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
-        button { padding: 10px 15px; margin-right: 5px; cursor: pointer; }
-        .log { height: 200px; overflow-y: scroll; background: #f9f9f9; padding: 10px; border: 1px solid #ddd; }
-        .dialogue-box { background: #fff8e1; border: 1px dashed #f0c040; padding: 12px; border-radius: 8px; margin: 10px 0; min-height: 60px; }
-        .choice-btn { display: block; width: 100%; text-align: left; margin: 4px 0; background: #fff; border: 1px solid #ccc; }
-        .mbti-badge { font-size: 1.1em; padding: 2px 8px; border-radius: 4px; background: #e0e0e0; }
-        .mbti-badge.locked { background: #4CAF50; color: white; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LuckyYum</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #e9e9e9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  #phone {
+    max-width: 430px;
+    min-height: 100vh;
+    margin: 0 auto;
+    background: #F5FCFF;
+    padding: 20px;
+    position: relative;
+  }
+  button { font-family: inherit; cursor: pointer; border: none; }
+  .hidden { display: none !important; }
+
+  /* ---- Setup screen ---- */
+  .setup-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-top: 40px;
+  }
+  .title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 20px; }
+  .label { font-size: 16px; font-weight: bold; display: block; margin-bottom: 6px; }
+  .input {
+    width: 100%; border: 1px solid #ccc; border-radius: 8px;
+    padding: 10px; margin-bottom: 20px; font-size: 16px;
+  }
+  .gender-row { display: flex; justify-content: space-around; margin-bottom: 20px; gap: 10px; }
+  .gender-btn {
+    flex: 1; padding: 10px; border-radius: 8px; background: #ccc; color: #fff; font-weight: bold;
+  }
+  .gender-btn.active { background: #4CAF50; }
+  .primary-btn {
+    width: 100%; padding: 14px; border-radius: 8px; background: #2196F3; color: #fff;
+    font-weight: bold; font-size: 16px;
+  }
+
+  /* ---- Header ---- */
+  .header-row {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+  }
+  .header-buttons { display: flex; gap: 10px; }
+  .icon-btn {
+    background: #eee; border-radius: 8px; padding: 8px 12px; font-size: 18px;
+  }
+
+  /* ---- Quest banner ---- */
+  .quest-banner {
+    background: #FFF3E0; border: 1px solid #FFB74D; border-radius: 10px;
+    padding: 12px; margin-bottom: 15px;
+  }
+  .quest-text { font-size: 14px; color: #E65100; font-weight: bold; margin: 0; }
+  .quest-hint { font-size: 12px; color: #FB8C00; margin: 4px 0 0; text-align: right; }
+  #questBanner { display: block; width: 100%; background: #FFF3E0; text-align: left; }
+
+  /* ---- Pet renderer ---- */
+  .pet-box {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px; background: #fff; border-radius: 15px; margin-bottom: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative;
+  }
+  .pet-emoji { font-size: 80px; line-height: 1; }
+  .pet-image-wrap { position: relative; }
+  .pet-image { width: 120px; height: 120px; object-fit: contain; }
+  .pet-overlay-icon { position: absolute; top: -4px; right: -4px; font-size: 24px; }
+  .pet-poop-badge { position: absolute; bottom: -4px; left: -4px; font-size: 16px; }
+  .stage-text { margin-top: 10px; font-size: 16px; font-weight: bold; color: #333; }
+
+  /* ---- Stats card ---- */
+  .stats-card {
+    background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .stat-text { font-size: 16px; margin-bottom: 5px; color: #444; font-weight: bold; }
+  .mbti-text { font-size: 16px; margin-top: 10px; color: #8A2BE2; font-weight: 900; }
+  .gauge-row { margin-bottom: 10px; }
+  .gauge-label { font-size: 13px; color: #444; font-weight: bold; margin-bottom: 3px; }
+  .gauge-track { height: 10px; background: #eee; border-radius: 5px; overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 5px; transition: width 0.2s; }
+  .gauge-value { font-size: 11px; color: #888; margin-top: 2px; text-align: right; }
+  .gacha-choice-row { display: flex; justify-content: space-around; margin-top: 10px; }
+  .gacha-choice-btn {
+    width: 70px; height: 70px; border-radius: 50%; background: #4CAF50;
+    color: #fff; font-weight: bold; font-size: 20px;
+  }
+
+  /* ---- Fortune card ---- */
+  .fortune-card {
+    background: #FFFACD; padding: 15px; border-radius: 10px; margin-bottom: 20px;
+    border: 1px solid #FFD700;
+  }
+  .fortune-title { font-size: 18px; font-weight: bold; color: #D2691E; margin-bottom: 5px; }
+  .fortune-desc { font-size: 14px; color: #555; }
+
+  /* ---- Action buttons ---- */
+  .action-row { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 10px; }
+  .action-btn {
+    flex: 1; background: #4CAF50; padding: 15px; border-radius: 10px;
+    text-align: center; color: #fff; font-weight: bold; font-size: 15px;
+  }
+  .action-btn:disabled { opacity: 0.5; }
+  .action-btn.medicine { background: #E53935; }
+  .action-btn.vaccine { background: #00897B; }
+  .gacha-btn {
+    width: 100%; background: #FFD700; padding: 15px; border-radius: 10px;
+    text-align: center; color: #222; font-weight: bold; font-size: 16px; margin-bottom: 15px;
+  }
+  .revive-btn {
+    width: 100%; background: #ff5c5c; padding: 15px; border-radius: 10px;
+    text-align: center; color: #fff; font-weight: bold; font-size: 16px;
+  }
+  .dev-btn {
+    width: 100%; background: #607D8B; padding: 12px; border-radius: 8px;
+    text-align: center; color: #fff; font-size: 14px; margin: 20px 0;
+  }
+
+  /* ---- Modals (dialogue-style, centered card) ---- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+    padding: 20px;
+  }
+  .card {
+    width: 100%; max-width: 360px; background: #fff; border-radius: 15px; padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    max-height: 85vh; overflow-y: auto;
+  }
+  .card-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; text-align: center; }
+  .card-body-text { font-size: 15px; color: #333; margin-bottom: 15px; line-height: 1.5; }
+  .choice-btn {
+    display: block; width: 100%; text-align: left; background: #F0E6FA;
+    border-radius: 8px; padding: 12px; margin-bottom: 8px; font-size: 14px; color: #4B0082;
+  }
+  .choice-btn.checkin { background: #E6F5EC; color: #1B5E3C; }
+  .choice-btn.menu { background: #4CAF50; color: #fff; text-align: center; font-weight: bold; font-size: 15px; padding: 14px; }
+  .close-btn { margin-top: 10px; text-align: center; padding: 10px; background: none; color: #888; font-size: 14px; width: 100%; }
+
+  /* ---- Full-screen modals (leaderboard/memorial/live talk/settings) ---- */
+  .fullscreen-overlay {
+    position: fixed; inset: 0; background: #fff; z-index: 60;
+    display: flex; flex-direction: column;
+  }
+  .fs-inner { max-width: 430px; margin: 0 auto; width: 100%; flex: 1; display: flex; flex-direction: column; padding: 20px; overflow: hidden; }
+  .list-item { padding: 15px; border-bottom: 1px solid #eee; margin-bottom: 10px; }
+  .list-scroll { flex: 1; overflow-y: auto; }
+  .empty-text { text-align: center; color: #999; padding: 30px; }
+
+  /* ---- Live talk ---- */
+  .lt-header {
+    display: flex; justify-content: space-between; align-items: center; padding: 15px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .lt-title { font-size: 18px; font-weight: bold; color: #8A2BE2; }
+  .lt-close { background: none; color: #888; font-size: 14px; }
+  .lt-status-row { display: flex; align-items: center; gap: 8px; padding: 10px 0; color: #888; font-size: 13px; }
+  .lt-status-warn { color: #D2691E; font-size: 13px; padding: 10px 0; }
+  .lt-messages { flex: 1; overflow-y: auto; padding: 15px 0; }
+  .bubble { max-width: 80%; border-radius: 12px; padding: 10px; margin-bottom: 8px; font-size: 14px; line-height: 1.4; }
+  .bubble.user { margin-left: auto; background: #4CAF50; color: #fff; }
+  .bubble.pet { margin-right: auto; background: #F0E6FA; color: #4B0082; }
+  .lt-input-row { display: flex; padding: 10px 0; border-top: 1px solid #eee; gap: 8px; }
+  .lt-input { flex: 1; border: 1px solid #ccc; border-radius: 8px; padding: 10px; font-size: 14px; }
+  .lt-send { background: #8A2BE2; border-radius: 8px; padding: 0 16px; color: #fff; font-weight: bold; }
+  .lt-audio-row { display: flex; justify-content: center; padding: 8px 0; }
+  .lt-audio-btn { padding: 8px; opacity: 0.5; background: none; color: #888; font-size: 12px; }
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid #ddd; border-top-color: #8A2BE2;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
 </head>
 <body>
+<div id="phone">
 
-    <h1>펫 케어 알고리즘 시뮬레이터</h1>
-    
-    <div class="card">
-        <h2>시간 경과</h2>
-        <p>현재 펫 경과 시간: <span id="timeElapsed">0</span>일</p>
-        <p>펫 상태: <strong id="petStage">Egg</strong></p>
-        <p>수명: 최대 90일 (3개월)</p>
-        <button onclick="passTime(0.5)">12시간 경과</button>
-        <button onclick="passTime(1)">1일 경과</button>
-        <button onclick="passTime(7)">7일 경과</button>
+  <!-- ============ SETUP SCREEN ============ -->
+  <div id="setupScreen" class="hidden">
+    <div class="setup-card">
+      <div class="title">내 사주 정보 입력</div>
+      <p style="margin-bottom:20px;text-align:center;">정확한 맞춤 운세를 위해 태어난 정보를 입력해주세요.</p>
+
+      <label class="label">생년월일 (YYYY-MM-DD)</label>
+      <input class="input" id="setupBirthDate" value="1990-01-01" placeholder="1990-01-01">
+
+      <label class="label">태어난 시간 (HH:mm)</label>
+      <input class="input" id="setupBirthTime" value="12:00" placeholder="12:00">
+
+      <label class="label">성별</label>
+      <div class="gender-row">
+        <button class="gender-btn active" id="genderMaleBtn" onclick="selectGender('남')">남성</button>
+        <button class="gender-btn" id="genderFemaleBtn" onclick="selectGender('여')">여성</button>
+      </div>
+
+      <button class="primary-btn" onclick="handleSaveProfile()">시작하기</button>
+    </div>
+  </div>
+
+  <!-- ============ MAIN SCREEN ============ -->
+  <div id="mainScreen" class="hidden">
+    <div class="header-row">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:0;">
+        <div class="title" style="margin-bottom:0;">LuckyYum</div>
+        <a href="/appdown" style="background:#4CAF50; color:white; padding:4px 8px; border-radius:5px; text-decoration:none; font-size:12px; font-weight:bold;">APK 다운로드</a>
+      </div>
+      <div class="header-buttons">
+        <button class="icon-btn" onclick="openSettings()">⚙️</button>
+        <button class="icon-btn" onclick="openLeaderboard()">🏆</button>
+        <button class="icon-btn" onclick="openMemorial()">📖</button>
+      </div>
     </div>
 
-    <div class="card">
-        <h2>일일 케어 (오늘 하루 동안의 활동)</h2>
-        <div class="row">
-            <div>
-                <p><strong>밥주기 (목표 100g, 3회 분할 최적)</strong></p>
-                <p>오늘 밥준 횟수: <span id="feedCount">0</span> | 누적량: <span id="feedAmount">0</span>g</p>
-                <button onclick="feed(10)">10g 주기</button>
-                <button onclick="feed(33)">33g 주기 (최적)</button>
-                <button onclick="feed(90)">90g 주기 (폭식)</button>
-            </div>
-            <div>
-                <p><strong>놀아주기 (목표 3회)</strong></p>
-                <p>오늘 놀아준 횟수: <span id="playCount">0</span></p>
-                <button onclick="play()">놀아주기 (1회)</button>
-            </div>
-            <div>
-                <p><strong>청소하기 (오염도 100 기준 30미만일때 청소 최적)</strong></p>
-                <p>현재 오염도: <span id="dirtLevel">0</span> / 100</p>
-                <p>오늘 청소 횟수: <span id="cleanCount">0</span></p>
-                <button onclick="clean()">청소하기</button>
-            </div>
-        </div>
-        <button onclick="endDay()" style="background: #4CAF50; color: white; width: 100%; margin-top: 10px;">하루 결산 (점수 계산)</button>
+    <button id="questBanner" class="quest-banner hidden" onclick="handleResolveQuest()">
+      <p class="quest-text" id="questText"></p>
+      <p class="quest-hint">탭해서 해결하기 →</p>
+    </button>
+
+    <div class="pet-box">
+      <div class="pet-image-wrap">
+        <img class="pet-image" id="petImage" src="/static/pet/pet_egg_fly_01.png" alt="pet">
+        <div class="pet-emoji hidden" id="petEmoji">👻</div>
+        <span class="pet-overlay-icon hidden" id="petSickIcon">😷</span>
+        <span class="pet-poop-badge hidden" id="petPoopBadge"></span>
+      </div>
+      <div class="stage-text" id="stageText">Stage: EGG</div>
     </div>
 
-    <div class="card">
-        <h2>누적 스탯</h2>
-        <p>총 획득 케어 점수: <strong id="totalScore">0</strong>점</p>
-        <div class="log" id="logBox"></div>
+    <div class="stats-card">
+      <div class="gauge-row">
+        <div class="gauge-label">🍖 Fullness</div>
+        <div class="gauge-track"><div class="gauge-fill" id="gaugeFullness" style="background:#FF7043;width:50%"></div></div>
+        <div class="gauge-value"><span id="statFullness">50</span>/100</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label">💖 Intimacy</div>
+        <div class="gauge-track"><div class="gauge-fill" id="gaugeIntimacy" style="background:#EC407A;width:50%"></div></div>
+        <div class="gauge-value"><span id="statIntimacy">50</span>/100</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label">✨ Cleanliness</div>
+        <div class="gauge-track"><div class="gauge-fill" id="gaugeCleanliness" style="background:#42A5F5;width:100%"></div></div>
+        <div class="gauge-value"><span id="statCleanliness">100</span>/100</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label">⚖️ Weight</div>
+        <div class="gauge-track"><div class="gauge-fill" id="gaugeWeight" style="background:#8D6E63;width:50%"></div></div>
+        <div class="gauge-value"><span id="statWeight">50</span>/100</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label">😊 Happiness</div>
+        <div class="gauge-track"><div class="gauge-fill" id="gaugeHappiness" style="background:#FFCA28;width:50%"></div></div>
+        <div class="gauge-value"><span id="statHappiness">50</span>/100</div>
+      </div>
+      <div class="stat-text" id="statPoopRow">💩 응가: <span id="statPoop">0</span>개</div>
+      <div class="stat-text" id="statHealth">💪 건강: 양호</div>
+      <div class="mbti-text">🧠 MBTI: <span id="statMbti">ISFJ</span></div>
     </div>
 
-    <div class="card">
-        <h2>대화(Talk) &amp; 쓰다듬기 — MBTI 성격 형성 (신규 기획 시뮬레이션)</h2>
-        <p>판정 MBTI: <span id="liveMbti" class="mbti-badge">-</span></p>
-        <p>오늘 대화 횟수: <span id="dialogueCount">0</span> / 5 &nbsp;|&nbsp; 쓰다듬기 누적: <span id="petCountLabel">0</span>회</p>
-        <div class="dialogue-box">
-            <p id="dialogueQuestion">'대화하기' 버튼을 눌러보세요. (Baby/Teen 단계에서는 성향 질문, Adult 단계에서는 확정된 성격의 혼잣말이 나옵니다)</p>
-            <div id="dialogueChoices"></div>
-        </div>
-        <button onclick="talk()">💬 대화하기</button>
-        <button onclick="pet()">🐾 쓰다듬기</button>
-        <p style="font-size:0.85em;color:#888;margin-top:8px;">※ 오버레이(화면 위를 돌아다니는 상태)에서는 이 두 액션이 각각 롱프레스(대화) / 짧은 탭(쓰다듬기) 제스처로 매핑될 예정입니다.</p>
+    <div class="fortune-card">
+      <div class="fortune-title">오늘의 운세 (등급: <span id="fortuneTier">3</span>)</div>
+      <div class="fortune-desc" id="fortuneDesc">무난하고 평화로운 하루입니다. 낮잠 자기에 딱 좋아요.</div>
     </div>
+
+    <div id="aliveActions">
+      <button class="gacha-btn hidden" id="gachaBtn" onclick="doGacha()">✨ 새 알 뽑기 (가챠) ✨</button>
+      <!-- 11번: 청소/목욕/예방접종/놀아주기/쓰다듬기는 상시 버튼이 아니라 위 퀘스트 배너로만 해결한다.
+           밥주기만 상시 버튼으로 남지만, 시간대 슬롯 밖이거나 이미 그 끼니를 줬으면 가챠가 열리지 않는다. -->
+      <div class="action-row">
+        <button class="action-btn" id="feedBtn" onclick="handleFeedPress()">부화시키기 🥚</button>
+        <button class="action-btn" id="talkBtn" onclick="openTalkMenu()">대화하기 💬</button>
+      </div>
+      <div class="action-row" id="healthRow">
+        <button class="action-btn medicine hidden" id="medicineBtn" onclick="doGiveMedicine()">약주기 💊</button>
+      </div>
+    </div>
+    <div id="deadActions" class="hidden">
+      <button class="revive-btn" onclick="doHatch()">새 펫 뽑기 (환생)</button>
+    </div>
+
+    <button class="dev-btn" onclick="doTimeTravel(6)">[Dev] 6시간 뒤로 감기 (Time Travel)</button>
+  </div>
+
+  <!-- ============ MEAL GACHA MODAL (11번) ============ -->
+  <div class="overlay hidden" id="mealGachaModal">
+    <div class="card">
+      <div class="card-title">🍚 얼마나 줄까요?</div>
+      <div class="card-body-text" id="mealGachaSubtitle" style="text-align:center;"></div>
+      <div class="gacha-choice-row" id="mealGachaChoices"></div>
+    </div>
+  </div>
+
+  <!-- ============ TALK MENU MODAL ============ -->
+  <div class="overlay hidden" id="talkMenuModal">
+    <div class="card">
+      <div class="card-title">무엇을 할까요?</div>
+      <button class="choice-btn menu" onclick="selectPersonality()" id="talkMenuPersonalityBtn">🧠 성향 대화</button>
+      <button class="choice-btn menu" onclick="selectCheckIn()">🤗 안부 묻기</button>
+      <button class="close-btn" onclick="closeModal('talkMenuModal')">닫기</button>
+    </div>
+  </div>
+
+  <!-- ============ PET DIALOGUE MODAL ============ -->
+  <div class="overlay hidden" id="dialogueModal">
+    <div class="card">
+      <div class="card-title" style="color:#8A2BE2;">성향 대화</div>
+      <div class="card-body-text" id="dialogueBody">아직 물어볼 질문이 없어요.</div>
+      <div id="dialogueChoices"></div>
+      <button class="close-btn" onclick="closeDialogueModal()">닫기</button>
+    </div>
+  </div>
+
+  <!-- ============ CHECK-IN MODAL ============ -->
+  <div class="overlay hidden" id="checkinModal">
+    <div class="card">
+      <div class="card-title" style="color:#2E8B57;">안부 묻기</div>
+      <div id="checkinBody"></div>
+      <button class="close-btn" onclick="closeCheckinModal()">닫기</button>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS MODAL ============ -->
+  <div class="fullscreen-overlay hidden" id="settingsModal">
+    <div class="setup-card" style="position:relative;">
+      <div class="title">설정 / 정보 확인</div>
+      <div id="settingsContent" style="text-align:left; line-height:1.6; margin-bottom: 20px; font-size: 14px; color: #444; max-height: 70vh; overflow-y: auto;">
+      </div>
+      <button class="dev-btn" style="background:#4CAF50;" onclick="closeModal('settingsModal')">닫기</button>
+    </div>
+  </div>
+
+  <!-- ============ LEADERBOARD MODAL ============ -->
+  <div class="fullscreen-overlay hidden" id="leaderboardModal">
+    <div class="fs-inner">
+      <div class="title">글로벌 랭킹 보드</div>
+      <div class="list-scroll" id="leaderboardList"></div>
+      <button class="dev-btn" style="background:#4CAF50;" onclick="closeModal('leaderboardModal')">닫기</button>
+    </div>
+  </div>
+
+  <!-- ============ MEMORIAL MODAL ============ -->
+  <div class="fullscreen-overlay hidden" id="memorialModal">
+    <div class="fs-inner">
+      <div class="title">명예의 전당 (Memorial)</div>
+      <div class="list-scroll" id="memorialList"></div>
+      <button class="dev-btn" style="background:#4CAF50;" onclick="closeModal('memorialModal')">닫기</button>
+    </div>
+  </div>
+
+  <!-- ============ LIVE TALK MODAL ============ -->
+  <div class="fullscreen-overlay hidden" id="liveTalkModal">
+    <div class="fs-inner">
+      <div class="lt-header">
+        <div class="lt-title" id="liveTalkTitle">일상대화</div>
+        <button class="lt-close" onclick="closeLiveTalk()">닫기</button>
+      </div>
+      <div class="lt-status-row hidden" id="liveTalkConnecting"><div class="spinner"></div><span>연결 중...</span></div>
+      <div class="lt-status-warn hidden" id="liveTalkFallbackWarn">⚠ AI 연결이 원활하지 않아 기본 대사로 응답 중이에요.</div>
+      <div class="lt-messages" id="liveTalkMessages"></div>
+      <div class="lt-input-row">
+        <input class="lt-input" id="liveTalkInput" placeholder="메시지를 입력하세요" onkeydown="if(event.key==='Enter') sendLiveTalkMessage()">
+        <button class="lt-send" onclick="sendLiveTalkMessage()">전송</button>
+      </div>
+      <div class="lt-audio-row">
+        <button class="lt-audio-btn" disabled>🎤 음성 (준비 중)</button>
+      </div>
+    </div>
+  </div>
+
+</div>
 
 <script>
-    let daysPassed = 0;
-    let totalScore = 0;
-    
-    // 일일 상태
-    let dailyFeeds = [];
-    let playCount = 0;
-    let cleanCount = 0;
-    let dirtLevel = 0; // 매일 조금씩 쌓임
+/* =========================================================================
+   LuckyYum web replica — mirrors app/src/store/petStore.ts (physical_/spirit_/env_
+   schema) + app/src/utils/{careQuality,happinessLogic,questLogic,mbtiCalculator,
+   fortuneLogic}.ts + app/src/config/gameBalance.ts, line-for-line where possible.
+   Overlay (Android floating-widget) feature intentionally omitted.
+   ========================================================================= */
 
-    function updateUI() {
-        document.getElementById('timeElapsed').innerText = daysPassed.toFixed(1);
+const USER_KEY = 'luckyyum-user-store';
+const PET_KEY = 'luckyyum-pet-store';
+const ACTIVITY_KEY = 'luckyyum-activity-store';
+const OLD_KEY = 'luckyyum_web_state';
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-        let stage = 'Egg';
-        if (daysPassed >= 90) stage = 'Memorial (Dead)';
-        else if (daysPassed >= 5.5) stage = 'Adult';
-        else if (daysPassed >= 2.5) stage = 'Teen';
-        else if (daysPassed >= 0.5) stage = 'Baby';
+// ---- 글로벌 밸런스 변수 (gameBalance.ts와 동일) ----
+const BALANCE = {
+  LIFESPAN_MAX_DAYS: 90,
+  HEALTHSPAN_END_DAY: 70,
+  AGING_SICK_BONUS_PER_DAY: 0.5,
+  FULLNESS_LOW: 40, FULLNESS_HIGH: 90,
+  WEIGHT_LOW: 40, WEIGHT_HIGH: 60,
+  CLEANLINESS_DIRTY: 30, CLEANLINESS_OK: 70,
+  HAPPINESS_SICK_THRESHOLD: 20,
+  MEALS_PER_DAY_TARGET: 3,
+  MEAL_AMOUNT_IDEAL: 20,
+  MEAL_AMOUNT_TOLERANCE: 0.1,
+  DIALOGUE_DAILY_CAP: 5,
+  DIALOGUE_COOLDOWN_HOURS: 1,
+  MEDICINE_CURE_WINDOW_HOURS: 24,
+  MEDICINE_DOSES_REQUIRED: 2,
+  VACCINE_PROTECTION_DAYS: 7,
+  SICK_DEATH_THRESHOLD_HOURS: 48,
+  DECAY_FULLNESS_PER_HOUR: 5,
+  DECAY_INTIMACY_PER_HOUR: 2,
+  DECAY_CLEANLINESS_PER_HOUR: 3,
+  DECAY_CLEANLINESS_PER_HOUR_POOP_PENALTY: 6,
+  HAPPINESS_EMA_ALPHA: 0.3,
+  POOP_SPAWN_PROBABILITY_ON_FEED: 0.4,
+  POOP_NEGLECT_THRESHOLD_COUNT: 3,
+  SICKNESS_BASE_PROBABILITY: 0.05,
+  FEED_FULLNESS_GAIN: 20, FEED_INTIMACY_GAIN: 5, FEED_WEIGHT_GAIN: 8,
+  PLAY_INTIMACY_GAIN: 3, PLAY_FULLNESS_LOSS: 5, PLAY_WEIGHT_LOSS: 4, PLAY_CLEANLINESS_LOSS: 10,
+  PET_INTIMACY_GAIN: 8, CLEAN_INTIMACY_GAIN: 5, DIALOGUE_INTIMACY_GAIN: 2,
+  EVOLUTION_CHECKPOINT_DAYS: [1, 3, 5, 10, 70],
+  QUEST_SPAWN_PROBABILITY: 0.3, QUEST_EXPIRY_HOURS: 6,
+  QUEST_SPAWN_WEIGHT_E: 1.5, QUEST_SPAWN_WEIGHT_I: 0.7,
+  FORTUNE_GOOD_HAPPINESS_THRESHOLD: 70, FORTUNE_GOOD_TIER_FLOOR: 4,
+  FORTUNE_BAD_HAPPINESS_THRESHOLD: 30, FORTUNE_BAD_TIER_CEILING: 2,
+  // 11번: 밥주기 시간대 슬롯 + 가챠 추측 미니게임
+  MEAL_SLOTS: [
+    { id: 'breakfast', label: '아침', startHour: 5, endHour: 11 },
+    { id: 'lunch', label: '점심', startHour: 11, endHour: 17 },
+    { id: 'dinner', label: '저녁', startHour: 17, endHour: 23 },
+  ],
+  MEAL_GACHA_CHOICE_COUNT: 3,
+  MEAL_OPTIMAL_MIN: 18, MEAL_OPTIMAL_MAX: 32,
+  MEAL_GACHA_MIN_AMOUNT: 15, MEAL_GACHA_MAX_AMOUNT: 40,
+  MEAL_SCORE_BEST_DIFF: 3, MEAL_SCORE_OK_DIFF: 8,
+  MEAL_WEIGHT_DELTA_MILD: 2, MEAL_WEIGHT_DELTA_LARGE: 5,
+  HATCH_FULLNESS_GAIN: 20, HATCH_WEIGHT_GAIN: 8,
+  // 11번: 펫 퀘스트 하루 예산제
+  DAILY_QUEST_TARGET_MIN: 3, DAILY_QUEST_TARGET_MAX: 5,
+};
+BALANCE.DAILY_MEAL_TOTAL_TARGET = BALANCE.MEAL_AMOUNT_IDEAL * BALANCE.MEALS_PER_DAY_TARGET;
 
-        document.getElementById('petStage').innerText = stage;
+// ---- 펫 퀘스트 DB (app/src/data/petQuests.json과 동일) ----
+const PET_QUESTS = [
+  { id: 'quest-hungry-01', trigger: 'fullness_low', text: '배고파요... 밥 주세요 🥺', resolveAction: 'feed' },
+  { id: 'quest-hungry-02', trigger: 'fullness_low', text: '꼬르륵... 밥 먹을 시간 아니에요?', resolveAction: 'feed' },
+  { id: 'quest-walk-01', trigger: 'play_neglected', text: '산책 가고 싶어요! 같이 나가요 🐾', resolveAction: 'play',
+    mbtiAffinity: ['ESTP','ESFP','ENFP','ENTP','ESTJ','ESFJ','ENFJ','ENTJ'] },
+  { id: 'quest-walk-02', trigger: 'play_neglected', text: '음... 그냥 저 여기서 조용히 기다릴게요.', resolveAction: 'play',
+    mbtiAffinity: ['ISTJ','ISFJ','INFJ','INTJ','ISTP','ISFP','INFP','INTP'] },
+  { id: 'quest-mood-01', trigger: 'happiness_low', text: '기분이 안좋아요... 같이 놀아줄래요? 😢', resolveAction: 'play' },
+  { id: 'quest-mood-02', trigger: 'happiness_low', text: '괜히 시무룩하네요... 쓰다듬어 주실래요?', resolveAction: 'pet' },
+  { id: 'quest-bath-01', trigger: 'cleanliness_low', text: '몸이 좀 찝찝해요... 목욕시켜 주세요 🛁', resolveAction: 'bathe' },
+  { id: 'quest-poop-01', trigger: 'poop_high', text: '여기 좀 지저분해졌어요... 청소해 주실래요? 🧹', resolveAction: 'clean' },
+  { id: 'quest-vaccine-01', trigger: 'vaccine_due', text: '저 예방접종 맞을 때 된 것 같아요! 같이 병원 가요 💉', resolveAction: 'vaccinate' },
+];
 
-        document.getElementById('feedCount').innerText = dailyFeeds.length;
-        document.getElementById('feedAmount').innerText = dailyFeeds.reduce((a,b)=>a+b, 0);
-        document.getElementById('playCount').innerText = playCount;
-        document.getElementById('dirtLevel').innerText = dirtLevel;
-        document.getElementById('cleanCount').innerText = cleanCount;
-        document.getElementById('totalScore').innerText = totalScore.toFixed(0);
+// 11번: 밥주기 시간대 슬롯 유틸 (app/src/utils/mealSlots.ts와 동일)
+function getMealSlotAt(timeMs) {
+  const hour = new Date(timeMs).getHours();
+  return BALANCE.MEAL_SLOTS.find((s) => hour >= s.startHour && hour < s.endHour) ?? null;
+}
+function isSameLocalDay(a, b) {
+  const da = new Date(a), db = new Date(b);
+  return da.getFullYear() === db.getFullYear() && da.getMonth() === db.getMonth() && da.getDate() === db.getDate();
+}
+function hasFedSlotToday(mealLog, slotId, now) {
+  return mealLog.some((m) => isSameLocalDay(m.time, now) && getMealSlotAt(m.time)?.id === slotId);
+}
+function randomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+function rollOptimalAmount() {
+  return randomInt(BALANCE.MEAL_OPTIMAL_MIN, BALANCE.MEAL_OPTIMAL_MAX);
+}
+function rollGachaChoices() {
+  const choices = [];
+  for (let i = 0; i < BALANCE.MEAL_GACHA_CHOICE_COUNT; i++) {
+    choices.push(randomInt(BALANCE.MEAL_GACHA_MIN_AMOUNT, BALANCE.MEAL_GACHA_MAX_AMOUNT));
+  }
+  return choices;
+}
 
-        // 성체(Adult) 전환 감지 → MBTI 확정(Locking)
-        if (stage === 'Adult' && prevStage !== 'Adult' && !finalizedMbti) {
-            finalizedMbti = computeMbti();
-            log(`🔒 성체로 성장! MBTI가 [${finalizedMbti}]로 확정되었습니다.`);
-        }
-        prevStage = stage;
+// 11번: play/clean/bathe/pet/vaccinate는 매칭되는 펫 퀘스트가 떠 있을 때만 통과 (petStore.ts와 동일)
+function hasMatchingActiveQuest(s, action) {
+  if (!s.spirit_activeQuest) return false;
+  const quest = PET_QUESTS.find((q) => q.id === s.spirit_activeQuest.questId);
+  return !!quest && quest.resolveAction === action;
+}
 
-        updateMbtiUI();
+function migrateWebStorage() {
+  const oldData = localStorage.getItem(OLD_KEY);
+  if (!oldData) return;
+  try {
+    const oldState = JSON.parse(oldData);
+    const userState = { state: { authToken: oldState.authToken || null, isOverlayActive: oldState.isOverlayActive || false, userProfile: oldState.userProfile || null } };
+    const petState = { state: legacyPetFieldsToV2(oldState) };
+    const actState = { state: {
+      activityLogs: oldState.activityLogs || [], dailyDialogueUsage: oldState.dailyDialogueUsage || null
+    }};
+    localStorage.setItem(USER_KEY, JSON.stringify(userState));
+    localStorage.setItem(PET_KEY, JSON.stringify(petState));
+    localStorage.setItem(ACTIVITY_KEY, JSON.stringify(actState));
+    localStorage.removeItem(OLD_KEY);
+    console.log('[migrate] Web storage migrated to 3 stores (v2 schema).');
+  } catch(e) {}
+}
+
+// petStore.ts의 migratePetStoreV1toV2()와 동일한 매핑 — physical_/spirit_/env_ 리네임 + 신규 필드 기본값.
+function legacyPetFieldsToV2(old) {
+  const fresh = freshPetFields();
+  return {
+    ...fresh,
+    petName: old.petName ?? 'Lucky',
+    petTier: old.petTier ?? 1,
+    petStage: old.petStage ?? 'egg',
+    petBirthDate: old.petBirthDate ?? null,
+    isDead: old.isDead ?? false,
+    lastCareTime: old.lastCareTime ?? Date.now(),
+    physical_fullness: old.fullness ?? fresh.physical_fullness,
+    physical_cleanliness: old.cleanliness ?? fresh.physical_cleanliness,
+    spirit_intimacy: old.intimacy ?? fresh.spirit_intimacy,
+    spirit_mbtiScores: old.mbtiScores ?? fresh.spirit_mbtiScores,
+    spirit_finalizedMbti: old.finalizedMbti ?? null,
+    feedCount: old.feedCount ?? 0,
+    playCount: old.playCount ?? 0,
+    cleanCount: old.cleanCount ?? 0,
+    petCount: old.petCount ?? 0,
+    spirit_playCount: (old.playCount ?? 0) + (old.petCount ?? 0),
+    memorials: old.memorials ?? [],
+    dailyFortuneLock: old.dailyFortuneLock ?? null,
+  };
+}
+migrateWebStorage();
+
+const DIALOGUES = [
+  {"id":"baby-situation-01","situation":"주인님, 왜 이렇게 오래 안 놀아줘요? 혹시 절 잊은 건 아니겠죠?","choices":[{"text":"방구석에 조용히 엎드려 잠이 들 때까지 기다린다.","trait":"I"},{"text":"주인님 발치에 앉아 빤히 쳐다보며 놀아달라고 조른다.","trait":"E"},{"text":"주인님에게 슬픈 눈빛을 보내며 애처롭게 운다.","trait":"F"}]},
+  {"id":"baby-situation-02","situation":"주인님, 저기 반짝이는 거 뭐냥? 처음 보는데, 혹시 먹는 거냥?","choices":[{"text":"낯선 물건 주변을 빙글빙글 돌며 조심스럽게 탐색한다.","trait":"I"},{"text":"신기한 물건을 보자마자 꼬리를 흔들며 다가가 코로 툭툭 건드려본다.","trait":"E"},{"text":"낯선 물건이 어떤 용도로 쓰일지 상상하며, 혹시 위험하진 않을지 잠시 생각에 잠긴다.","trait":"N"}]},
+  {"id":"baby-situation-03","situation":"친구가 내 밥을 실수로 먹어버렸어! 주인님, 나 어떻게 해야 할까요?","choices":[{"text":"친구가 먹은 밥은 다시 돌려받을 수 있는지 생각해요.","trait":"T"},{"text":"친구가 미안해할 것 같아서 괜찮다고 말해줘요.","trait":"F"},{"text":"다른 맛있는 간식을 찾아볼까 하고 주인님을 올려다봐요.","trait":"P"}]},
+  {"id":"baby-situation-04","situation":"주인님, 오늘 하루는 어떻게 보낼까요? 냠냠?","choices":[{"text":"밖에 나가서 새로운 친구들을 만나고 싶어요! 왈왈!","trait":"E"},{"text":"맛있는 간식은 언제 주시는 거예요? 지금 당장 먹고 싶어요!","trait":"S"},{"text":"딱히 정해진 것 없이, 주인님 마음 가는 대로 자유롭게 놀고 싶어요!","trait":"P"}]},
+  {"id":"baby-situation-05","situation":"주인님! 저기 꼬리 흔드는 친구는 누구예요? 저랑 놀고 싶은 걸까요?","choices":[{"text":"냅다 달려가서 킁킁 냄새를 맡으며 먼저 아는 척을 한다.","trait":"E"},{"text":"주인님 다리 뒤에 숨어 있다가, 상대방이 먼저 다가오면 조심스럽게 인사를 나눈다.","trait":"I"},{"text":"상대방의 털색깔, 크기, 꼬리 흔드는 속도 등 눈에 보이는 특징들을 자세히 관찰한다.","trait":"S"}]},
+  {"id":"baby-situation-06","situation":"주인님, 갑자기 비가 쏟아져요! 우리 이제 어떻게 해야 할까요?","choices":[{"text":"창밖을 보며 빗방울들이 어떻게 떨어지는지 유심히 관찰한다.","trait":"S"},{"text":"주인님 품으로 파고들어 따뜻한 위로를 받고 싶어 한다.","trait":"F"},{"text":"비가 그친 뒤 생길 무지개를 상상하며 즐거워한다.","trait":"N"}]},
+  {"id":"baby-situation-07","situation":"주인님, 며칠 동안 집을 비우신다고요? 그럼 나 혼자 어떻게 지내야 할까요?","choices":[{"text":"친구들을 초대해서 다 같이 신나는 파티를 열까요?","trait":"E"},{"text":"조용히 집에서 낮잠을 자거나 재미있는 장난감으로 놀면서 시간을 보낼래요.","trait":"I"},{"text":"주인님이 돌아오시면 깜짝 놀랄 만한 특별한 이벤트를 계획해 볼까요?","trait":"N"}]},
+  {"id":"baby-situation-08","situation":"주인님, 여기 뭔가 숨겨져 있었어요! 이거 제가 먹어도 되는 간식인가요?","choices":[{"text":"냅다 숨겨진 간식을 와구와구 먹어버려요!","trait":"S"},{"text":"혹시 다른 곳에도 간식이 숨겨져 있을까 주변을 킁킁거려요.","trait":"N"},{"text":"간식을 주인님에게 가져다주며 같이 먹자고 졸라요.","trait":"F"}]},
+  {"id":"baby-situation-09","situation":"주인님, 제가 저 친구랑 장난감 때문에 으르렁거렸는데, 이제 어떡하면 좋을까요?","choices":[{"text":"다른 친구에게 가서 새 장난감을 가지고 놀자고 제안한다.","trait":"E"},{"text":"친구가 속상할까 봐 걱정하며 먼저 사과한다.","trait":"F"},{"text":"다음에 어떻게 싸우지 않고 장난감을 나눠 가질지 계획을 세운다.","trait":"J"}]},
+  {"id":"baby-situation-10","situation":"주인님! 여기는 처음 보는 곳인데, 어디로 가볼까요?","choices":[{"text":"처음 보는 친구들이 있나 두리번거리며 먼저 다가가 본다.","trait":"E"},{"text":"낯선 냄새를 맡으며 주변을 꼼꼼하게 탐색해본다.","trait":"S"},{"text":"왠지 저 너머에 신기한 보물이 있을 것 같아 곧장 달려간다.","trait":"N"}]},
+  {"id":"baby-situation-11","situation":"주인님, 왜 시무룩해 보여? 내가 뭐 해줄까?","choices":[{"text":"주인님 무릎 위로 폴짝 올라가서 얼굴을 핥아주고 애교를 부려요.","trait":"E"},{"text":"주인님 주변을 맴돌며 왜 슬픈지 조용히 생각하고 해결책을 찾아봐요.","trait":"T"},{"text":"주인님 옆에 가만히 기대어 앉아서 따뜻한 온기를 나눠줘요.","trait":"F"}]},
+  {"id":"baby-situation-12","situation":"주인님, 방금 저 큰 소리 뭐였어요? 혹시 무서운 건 아니겠죠?","choices":[{"text":"주인님 손을 잡고 밖으로 나가서 무슨 소리였는지 함께 찾아봐요!","trait":"E"},{"text":"주인님 품으로 얼른 파고들어 조용히 숨어있을래요.","trait":"I"},{"text":"귀를 쫑긋 세우고 소리의 방향과 크기를 정확히 확인해볼래요.","trait":"S"}]},
+  {"id":"baby-situation-13","situation":"주인님, 저 혼자 너무 오래 있었어요. 이제 뭘 할까요?","choices":[{"text":"밖으로 나가서 다른 친구들과 신나게 뛰어놀고 싶어요!","trait":"E"},{"text":"제 침대에 푹 파묻혀서 조용히 낮잠을 자거나, 좋아하는 간식을 천천히 음미하고 싶어요.","trait":"I"},{"text":"집안 여기저기를 탐험하며 새로운 놀거리를 찾아보거나, 재밌는 상상을 하며 시간을 보내볼까요?","trait":"N"}]},
+  {"id":"baby-situation-14","situation":"주인님, 처음 해보는 놀이라고요? 저랑 같이 해볼 건가요?","choices":[{"text":"우와! 새로운 놀이라니 너무 신나요! 얼른 친구들도 불러서 같이 해봐요!","trait":"E"},{"text":"음... 처음 해보는 거라 조금 낯설어요. 먼저 혼자서 어떻게 하는 건지 살펴보고 싶어요.","trait":"I"},{"text":"말씀만 마세요! 일단 몸으로 부딪혀서 뭐가 재미있는지 느껴볼래요!","trait":"S"}]},
+  {"id":"baby-situation-15","situation":"집사님, 오늘은 평소와 시간이 달라졌멍! 우리 이제 뭐 할까?","choices":[{"text":"바뀐 일정에 맞춰서 뭘 해야 할지 바로 물어보러 갈래!","trait":"J"},{"text":"음? 새로운 일정이 생겼나? 일단 주변을 탐색해볼까?","trait":"P"},{"text":"갑자기 바뀌어서 조금 놀랐어. 잠시 혼자만의 시간을 가질래.","trait":"I"}]},
+  {"id":"baby-situation-16","situation":"주인님, 방금 저 칭찬해주신 거예요? 정말이에요?","choices":[{"text":"신나서 꼬리를 흔들며 주인님 주위를 빙글빙글 돈다.","trait":"E"},{"text":"속으로는 기쁘지만 겉으로는 덤덤하게 제 할 일을 계속한다.","trait":"I"},{"text":"주인님이 어떤 점을 칭찬했는지 곰곰이 생각하며 다음에 더 잘할 방법을 고민한다.","trait":"T"}]}
+];
+
+const ADULT_FALLBACK_LINES = {
+  ISTJ: '주인님, 오늘 할 일은 다 하셨나요?', ISFJ: '주인님 편히 쉬세요, 제가 지켜볼게요.',
+  INFJ: '가끔 세상 모든 마음을 다 이해하고 싶어져요.', INTJ: '다음 계획은 이미 세워뒀어요.',
+  ISTP: '그거, 제가 한번 뜯어봐도 될까요?', ISFP: '오늘 하늘 색깔 진짜 예쁘네요.',
+  INFP: '주인님, 우리의 인연은 운명 같아요.', INTP: '주인님, 우주의 끝은 어디일까요?',
+  ESTP: '심심한데 밖에 나가서 뭐라도 하죠!', ESFP: '오늘 같이 신나게 놀아요!',
+  ENFP: '새로운 모험을 떠나볼까요, 주인님?', ENTP: '이거 완전 다르게 해볼 수도 있을 것 같은데요?',
+  ESTJ: '주인님, 오늘 일정 정리해드릴까요?', ESFJ: '다들 잘 지내고 있는지 걱정되네요.',
+  ENFJ: '주인님이 행복해야 저도 행복해요.', ENTJ: '제가 이 집의 계획을 이끌어볼게요.',
+};
+const DEFAULT_LIVE_LINE = '주인님, 오늘도 좋은 하루예요!';
+function getAdultFallbackLine(mbti) {
+  if (!mbti) return DEFAULT_LIVE_LINE;
+  return ADULT_FALLBACK_LINES[mbti] ?? DEFAULT_LIVE_LINE;
+}
+
+const PET_NAMES = ['행운이','대박이','쑥쑥이','튼튼이','반짝이','별이','사랑이','복실이','도담이','우람이'];
+const GACHA_PET_NAMES = ['행운이','대박이','쑥쑥이','튼튼이','반짝이','별이','사랑이','복실이','도담이','우람이','구름이','보리','코코','달이','해피'];
+
+// ---- Species / image rendering — 3번 섹션: teen→adult에서 확정된 physical_species가 있으면 그걸,
+//      없으면(egg/baby/junior/teen) 지금처럼 이름 해시로 정해지는 임시 종을 보여준다. ----
+function getSpeciesName(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = ((hash << 5) - hash) + name.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % 3;
+  if (idx === 0) return 'fly';
+  if (idx === 1) return 'dragon';
+  return 'bear';
+}
+function getPetImageSrc(petName, petStage, lockedSpecies) {
+  const species = lockedSpecies || getSpeciesName(petName);
+  const drawable = petStage === 'egg' ? `pet_egg_${species}_01` : `pet_${species}_01`;
+  return `/static/pet/${drawable}.png`;
+}
+
+// ---- 펫 화면 애니메이션 — backend/app/static/pet의 pet_{species}_01..NN.png(알은
+//      pet_egg_{species}_01..NN.png) 프레임 시퀀스를 순환시킨다. 프레임 수/지속시간은
+//      app/android/app/src/main/res/drawable의 *_anim.xml과 동일하게 맞춤. ----
+const IDLE_ANIM_CONFIG = {
+  bear: { frames: 12, durationMs: 150 },
+  dragon: { frames: 12, durationMs: 150 },
+  fly: { frames: 12, durationMs: 150 },
+  egg_bear: { frames: 16, durationMs: 300 },
+  egg_dragon: { frames: 12, durationMs: 300 },
+  egg_fly: { frames: 16, durationMs: 300 },
+};
+function pad2(n) { return String(n).padStart(2, '0'); }
+function getPetFrameSrc(species, petStage, frame1Based) {
+  const drawable = petStage === 'egg' ? `pet_egg_${species}_${pad2(frame1Based)}` : `pet_${species}_${pad2(frame1Based)}`;
+  return `/static/pet/${drawable}.png`;
+}
+
+let petAnim = { animKey: null, frame: 0, timerId: null };
+function updatePetAnimation(petName, petStage, lockedSpecies, isAnimated) {
+  const petImageEl = document.getElementById('petImage');
+  if (!isAnimated) {
+    if (petAnim.timerId) { clearInterval(petAnim.timerId); petAnim.timerId = null; }
+    petAnim.animKey = null;
+    return;
+  }
+
+  const species = lockedSpecies || getSpeciesName(petName);
+  const animKey = petStage === 'egg' ? `egg_${species}` : species;
+  if (petAnim.animKey === animKey && petAnim.timerId) return; // 이미 이 시퀀스로 돌아가는 중
+
+  if (petAnim.timerId) clearInterval(petAnim.timerId);
+  const config = IDLE_ANIM_CONFIG[animKey];
+  if (!config) { petImageEl.src = getPetImageSrc(petName, petStage, lockedSpecies); petAnim = { animKey: null, frame: 0, timerId: null }; return; }
+
+  petAnim.animKey = animKey;
+  petAnim.frame = 0;
+  petImageEl.src = getPetFrameSrc(species, petStage, 1);
+  petAnim.timerId = setInterval(() => {
+    petAnim.frame = (petAnim.frame + 1) % config.frames;
+    petImageEl.src = getPetFrameSrc(species, petStage, petAnim.frame + 1);
+  }, config.durationMs);
+}
+
+// ---- Default state (petStore.ts freshPetFields()와 동일) ----
+function freshPetFields() {
+  return {
+    petStage: 'egg',
+    petBirthDate: null,
+    isDead: false,
+    lastCareTime: Date.now(),
+
+    physical_fullness: 50,
+    physical_cleanliness: 100,
+    physical_weight: 50,
+    physical_health: 'healthy',
+    physical_sickSince: null,
+    physical_medicineDoses: 0,
+    physical_firstMedicineDoseTime: null,
+    physical_vaccinatedUntil: null,
+    physical_evolutionGrade: null,
+    physical_species: null,
+    physical_lastBatheTime: null,
+    physical_lastCheckpointDay: 0,
+
+    spirit_intimacy: 50,
+    spirit_happiness: 50,
+    spirit_mbtiScores: { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 },
+    spirit_finalizedMbti: null,
+    spirit_playCount: 0,
+    spirit_activeQuest: null,
+    spirit_lastPlayTime: null,
+    spirit_mealLog: [],
+    spirit_playCountSinceCheckpoint: 0,
+    spirit_questResponseLog: [],
+    spirit_mealGacha: null,
+    spirit_dailyQuestBudget: null,
+
+    env_poopCount: 0,
+    env_lastCleanTime: null,
+    env_cleanLog: [],
+
+    feedCount: 0,
+    playCount: 0,
+    cleanCount: 0,
+    petCount: 0,
+
+    memorials: [],
+    dailyFortuneLock: null,
+  };
+}
+function defaultState() {
+  return {
+    petName: 'Lucky',
+    petTier: 1,
+    userProfile: null,
+    authToken: null,
+    dailyDialogueUsage: null,
+    ...freshPetFields(),
+  };
+}
+
+const badWords = ['바보', '멍청이', '씨발', '개새끼', '지랄', '병신', '좆', '썅', '미친', '새끼'];
+function isValidName(name) {
+  const normalized = name.replace(/\s/g, '').toLowerCase();
+  for (const bad of badWords) {
+    if (normalized.includes(bad)) return false;
+  }
+  return true;
+}
+
+function loadState() {
+  try {
+    const rawUser = localStorage.getItem(USER_KEY);
+    const rawPet = localStorage.getItem(PET_KEY);
+    const rawAct = localStorage.getItem(ACTIVITY_KEY);
+
+    let combined = defaultState();
+    if (rawUser) Object.assign(combined, JSON.parse(rawUser).state);
+    if (rawPet) {
+      const petState = JSON.parse(rawPet).state;
+      // v1(리네임 이전) 저장분이면 physical_/spirit_/env_ 스키마로 이관
+      const isV1 = petState && petState.fullness !== undefined && petState.physical_fullness === undefined;
+      Object.assign(combined, isV1 ? legacyPetFieldsToV2(petState) : petState);
     }
+    if (rawAct) Object.assign(combined, JSON.parse(rawAct).state);
 
-    function log(msg) {
-        const box = document.getElementById('logBox');
-        box.innerHTML += `<div>[${daysPassed.toFixed(1)}일차] ${msg}</div>`;
-        box.scrollTop = box.scrollHeight;
+    return combined;
+  } catch (e) {
+    return defaultState();
+  }
+}
+
+let state = loadState();
+
+function saveState() {
+  const userState = { authToken: state.authToken, isOverlayActive: state.isOverlayActive, userProfile: state.userProfile };
+  const petState = {
+    petName: state.petName, petTier: state.petTier, petStage: state.petStage, petBirthDate: state.petBirthDate,
+    isDead: state.isDead, lastCareTime: state.lastCareTime,
+    physical_fullness: state.physical_fullness, physical_cleanliness: state.physical_cleanliness,
+    physical_weight: state.physical_weight, physical_health: state.physical_health,
+    physical_sickSince: state.physical_sickSince, physical_medicineDoses: state.physical_medicineDoses,
+    physical_firstMedicineDoseTime: state.physical_firstMedicineDoseTime, physical_vaccinatedUntil: state.physical_vaccinatedUntil,
+    physical_evolutionGrade: state.physical_evolutionGrade, physical_species: state.physical_species,
+    physical_lastBatheTime: state.physical_lastBatheTime, physical_lastCheckpointDay: state.physical_lastCheckpointDay,
+    spirit_intimacy: state.spirit_intimacy, spirit_happiness: state.spirit_happiness,
+    spirit_mbtiScores: state.spirit_mbtiScores, spirit_finalizedMbti: state.spirit_finalizedMbti,
+    spirit_playCount: state.spirit_playCount, spirit_activeQuest: state.spirit_activeQuest,
+    spirit_lastPlayTime: state.spirit_lastPlayTime, spirit_mealLog: state.spirit_mealLog,
+    spirit_playCountSinceCheckpoint: state.spirit_playCountSinceCheckpoint, spirit_questResponseLog: state.spirit_questResponseLog,
+    spirit_mealGacha: state.spirit_mealGacha, spirit_dailyQuestBudget: state.spirit_dailyQuestBudget,
+    env_poopCount: state.env_poopCount, env_lastCleanTime: state.env_lastCleanTime, env_cleanLog: state.env_cleanLog,
+    feedCount: state.feedCount, playCount: state.playCount, cleanCount: state.cleanCount, petCount: state.petCount,
+    memorials: state.memorials, dailyFortuneLock: state.dailyFortuneLock,
+  };
+  const actState = { activityLogs: state.activityLogs, dailyDialogueUsage: state.dailyDialogueUsage };
+
+  localStorage.setItem(USER_KEY, JSON.stringify({ state: userState }));
+  localStorage.setItem(PET_KEY, JSON.stringify({ state: petState }));
+  localStorage.setItem(ACTIVITY_KEY, JSON.stringify({ state: actState }));
+}
+
+function setState(patch) {
+  state = { ...state, ...patch };
+  saveState();
+  render();
+}
+
+// =========================================================================
+// 1번: 케어 품질 지수 — 저장 안 함, 순수 함수 (careQuality.ts와 동일)
+// =========================================================================
+function computeCareQualityIndex(data) {
+  const days = Math.max(data.windowDays, 1);
+  let score = 0;
+
+  // 11번: "하루 총량/횟수"가 아니라 끼니별 가챠 추측 정확도로 채점한다.
+  for (const meal of data.mealLog) {
+    const diff = Math.abs(meal.amount - meal.optimalAmount);
+    if (diff <= BALANCE.MEAL_SCORE_BEST_DIFF) score += 10;
+    else if (diff <= BALANCE.MEAL_SCORE_OK_DIFF) score += 5;
+  }
+
+  const playsPerDay = data.playCountInWindow / days;
+  if (Math.round(playsPerDay) === BALANCE.MEALS_PER_DAY_TARGET) score += 20;
+  else if (playsPerDay > BALANCE.MEALS_PER_DAY_TARGET) score += 5;
+  else score += Math.min(playsPerDay, BALANCE.MEALS_PER_DAY_TARGET) * (20 / BALANCE.MEALS_PER_DAY_TARGET);
+
+  for (const entry of data.cleanLog) {
+    if (entry.dirtinessBefore >= BALANCE.CLEANLINESS_OK) score += 10;
+    else if (entry.dirtinessBefore >= BALANCE.CLEANLINESS_DIRTY) score += 5;
+    else score -= 2;
+  }
+
+  if (data.weight >= BALANCE.WEIGHT_LOW && data.weight <= BALANCE.WEIGHT_HIGH) score += 10;
+  else score -= 10;
+
+  if (data.questResponseTimesMs.length > 0) {
+    const avgMs = data.questResponseTimesMs.reduce((a, b) => a + b, 0) / data.questResponseTimesMs.length;
+    const avgHours = avgMs / (1000 * 60 * 60);
+    if (avgHours < 1) score += 10;
+    else if (avgHours < 3) score += 5;
+  }
+
+  return score;
+}
+function gradeFromAverageScore(avg) {
+  if (avg < 15) return 'poor';
+  if (avg <= 35) return 'normal';
+  return 'good';
+}
+const GRADE_SPECIES_MAP = { good: 'dragon', normal: 'fly', poor: 'bear' };
+function speciesFromGrade(grade) { return GRADE_SPECIES_MAP[grade]; }
+function evaluateEvolution(data) {
+  const totalScore = computeCareQualityIndex(data);
+  const averageScore = totalScore / Math.max(data.windowDays, 1);
+  const grade = gradeFromAverageScore(averageScore);
+  return { grade, species: speciesFromGrade(grade), averageScore };
+}
+function buildCareQualityWindow(s, daysElapsed) {
+  const windowDays = Math.max(daysElapsed - s.physical_lastCheckpointDay, 1);
+  return {
+    windowDays,
+    mealLog: s.spirit_mealLog,
+    cleanLog: s.env_cleanLog,
+    playCountInWindow: s.spirit_playCountSinceCheckpoint,
+    weight: s.physical_weight,
+    questResponseTimesMs: s.spirit_questResponseLog,
+  };
+}
+
+// =========================================================================
+// 5번: 행복도 — EMA로 완충되는 반파생값 (happinessLogic.ts와 동일)
+// =========================================================================
+function computeHappinessTarget(inputs) {
+  let score = 50;
+  if (inputs.fullness >= BALANCE.FULLNESS_LOW && inputs.fullness <= BALANCE.FULLNESS_HIGH) score += 15;
+  else score -= 15;
+  if (inputs.cleanliness < 30) score -= 15;
+  else if (inputs.cleanliness >= 70) score += 10;
+  score += (inputs.intimacy - 50) * 0.3;
+  if (inputs.isSick) score -= 25;
+  if (inputs.weight >= BALANCE.WEIGHT_LOW && inputs.weight <= BALANCE.WEIGHT_HIGH) score += 10;
+  else score -= 10;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+// =========================================================================
+// MBTI calculator (mbtiCalculator.ts와 동일 — J/P 타이브레이커는 케어 품질 지수)
+// =========================================================================
+function calculateMBTI(s) {
+  if (s.spirit_finalizedMbti) return s.spirit_finalizedMbti;
+  const { feedCount, playCount, cleanCount, spirit_mbtiScores: mbtiScores } = s;
+  const totalActions = feedCount + playCount + cleanCount;
+  const totalDialogueScore = Object.values(mbtiScores).reduce((a, b) => a + b, 0);
+  if (totalActions === 0 && totalDialogueScore === 0) return 'ISFJ';
+
+  const pick = (a, b, tiebreak) => {
+    if (mbtiScores[a] === mbtiScores[b]) return tiebreak;
+    return mbtiScores[a] > mbtiScores[b] ? a : b;
+  };
+
+  const daysElapsed = s.petBirthDate ? Math.floor((Date.now() - s.petBirthDate) / DAY_MS) : 0;
+  const windowDays = Math.max(daysElapsed - s.physical_lastCheckpointDay, 1);
+  const careQualityAverage = computeCareQualityIndex({
+    windowDays,
+    mealLog: s.spirit_mealLog,
+    cleanLog: s.env_cleanLog,
+    playCountInWindow: s.spirit_playCountSinceCheckpoint,
+    weight: s.physical_weight,
+    questResponseTimesMs: s.spirit_questResponseLog,
+  }) / windowDays;
+
+  const isE = pick('E', 'I', playCount > (feedCount + cleanCount) / 2 ? 'E' : 'I') === 'E';
+  const isS = pick('S', 'N', cleanCount > totalActions * 0.2 ? 'S' : 'N') === 'S';
+  const isT = pick('T', 'F', feedCount > playCount ? 'T' : 'F') === 'T';
+  const isJ = pick('J', 'P', careQualityAverage > 25 ? 'J' : 'P') === 'J';
+  return `${isE ? 'E' : 'I'}${isS ? 'S' : 'N'}${isT ? 'T' : 'F'}${isJ ? 'J' : 'P'}`;
+}
+
+// =========================================================================
+// 10번: 운세 — spirit_happiness 기반 양방향 연동 (fortuneLogic.ts와 동일)
+// =========================================================================
+const CHEONGAN = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+function getDayMaster(year, month, day) {
+  const anchor = Date.UTC(1900, 0, 31);
+  const target = Date.UTC(year, month - 1, day);
+  const diffDays = Math.floor((target - anchor) / 86400000);
+  const ganIndex = ((diffDays % 10) + 10) % 10;
+  return CHEONGAN[ganIndex];
+}
+function generateTodayBaseTier(profile) {
+  if (!profile) return 3;
+  try {
+    const [year, month, day] = profile.birthDate.split('-').map(Number);
+    const dayMaster = getDayMaster(year, month, day);
+    const today = new Date().toISOString().split('T')[0];
+    let hash = 0;
+    const str = dayMaster + today;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
+    return (Math.abs(hash) % 5) + 1;
+  } catch (e) {
+    return 3;
+  }
+}
+function calculateFortuneTier(s, baseSajuTier) {
+  const today = new Date().toISOString().split('T')[0];
+  let currentTier = baseSajuTier;
+  if (s.dailyFortuneLock && s.dailyFortuneLock.date === today) {
+    currentTier = s.dailyFortuneLock.baseTier;
+  }
+  if (s.spirit_happiness >= BALANCE.FORTUNE_GOOD_HAPPINESS_THRESHOLD) {
+    currentTier = Math.max(currentTier, BALANCE.FORTUNE_GOOD_TIER_FLOOR);
+  } else if (s.spirit_happiness <= BALANCE.FORTUNE_BAD_HAPPINESS_THRESHOLD) {
+    currentTier = Math.min(currentTier, BALANCE.FORTUNE_BAD_TIER_CEILING);
+  }
+  return currentTier;
+}
+function getMockFortuneText(tier, dayMaster, monthBranch) {
+  if (tier >= 4) return `오늘 ${dayMaster}목 친구의 기운이 하늘을 찌릅니다! 최고의 하루!`;
+  if (tier === 3) return `무난하고 평화로운 하루입니다. 낮잠 자기에 딱 좋아요.`;
+  return `으으... ${monthBranch}월의 차가운 기운 때문에 조금 힘든 날이에요. 따뜻하게 돌봐주세요!`;
+}
 
-    function passTime(days) {
-        if (daysPassed >= 90) return alert('이미 수명을 다했습니다.');
-        daysPassed += days;
-        dirtLevel = Math.min(100, dirtLevel + (days * 50)); // 하루에 오염도 50증가
-        log(`${days}일이 지났습니다.`);
-        updateUI();
+// =========================================================================
+// 9번/10번: 펫 퀘스트 — trigger/선택/만료/스폰확률 (questLogic.ts와 동일)
+// =========================================================================
+function isQuestTriggered(quest, ctx) {
+  switch (quest.trigger) {
+    case 'fullness_low': return ctx.fullness < BALANCE.FULLNESS_LOW;
+    case 'play_neglected': return ctx.hoursSinceLastPlay !== null && ctx.hoursSinceLastPlay >= 12;
+    case 'happiness_low': return ctx.happiness < BALANCE.HAPPINESS_SICK_THRESHOLD;
+    case 'cleanliness_low': return ctx.cleanliness < BALANCE.CLEANLINESS_DIRTY;
+    case 'poop_high': return ctx.poopCount >= BALANCE.POOP_NEGLECT_THRESHOLD_COUNT;
+    case 'vaccine_due': return ctx.vaccinatedUntil === null || ctx.now > ctx.vaccinatedUntil;
+    default: return false;
+  }
+}
+function getEligibleQuests(quests, ctx) {
+  return quests.filter((q) => isQuestTriggered(q, ctx));
+}
+function pickQuest(quests, ctx, finalizedMbti) {
+  const eligible = getEligibleQuests(quests, ctx);
+  if (eligible.length === 0) return null;
+  if (finalizedMbti) {
+    const affinityMatch = eligible.filter((q) => q.mbtiAffinity && q.mbtiAffinity.includes(finalizedMbti));
+    if (affinityMatch.length > 0) return affinityMatch[Math.floor(Math.random() * affinityMatch.length)];
+  }
+  return eligible[Math.floor(Math.random() * eligible.length)];
+}
+function getQuestSpawnProbability(finalizedMbti) {
+  if (finalizedMbti && finalizedMbti.startsWith('E')) return BALANCE.QUEST_SPAWN_PROBABILITY * BALANCE.QUEST_SPAWN_WEIGHT_E;
+  if (finalizedMbti && finalizedMbti.startsWith('I')) return BALANCE.QUEST_SPAWN_PROBABILITY * BALANCE.QUEST_SPAWN_WEIGHT_I;
+  return BALANCE.QUEST_SPAWN_PROBABILITY;
+}
+function isQuestExpired(spawnedAt, now) {
+  return now - spawnedAt >= BALANCE.QUEST_EXPIRY_HOURS * ONE_HOUR_MS;
+}
+
+// 퀘스트 해결 체크 — currentIntimacy는 액션 자신이 이미 계산한 새 유대감 값 위에 보너스를 "더한다"
+// (petStore.ts에서 겪었던 버그: state.spirit_intimacy로 재계산하면 액션 자신의 증가분을 덮어써버림).
+function resolveQuestPatch(s, action, currentIntimacy) {
+  if (!s.spirit_activeQuest) return {};
+  const quest = PET_QUESTS.find((q) => q.id === s.spirit_activeQuest.questId);
+  if (!quest || quest.resolveAction !== action) return {};
+  const responseMs = Date.now() - s.spirit_activeQuest.spawnedAt;
+  return {
+    spirit_activeQuest: null,
+    spirit_intimacy: Math.min(100, currentIntimacy + 5),
+    spirit_questResponseLog: [...s.spirit_questResponseLog, responseMs],
+  };
+}
+
+// =========================================================================
+// 0/11번: 케어 액션 (petStore.ts와 동일)
+// feed()는 알→아기 부화 전용. 부화 이후엔 openMealGacha()/chooseMealAmount() 2단계로 넘어간다.
+// play/clean/bathe/pet/vaccinate는 매칭되는 펫 퀘스트가 떠 있을 때만 동작한다(hasMatchingActiveQuest).
+// =========================================================================
+function doFeed() {
+  if (state.isDead) return;
+  if (!state.petName) return;
+  if (state.petStage !== 'egg') return;
+
+  const now = Date.now();
+  setState({
+    physical_fullness: Math.min(100, state.physical_fullness + BALANCE.HATCH_FULLNESS_GAIN),
+    physical_weight: Math.min(100, state.physical_weight + BALANCE.HATCH_WEIGHT_GAIN),
+    petStage: 'baby',
+    petBirthDate: now,
+    lastCareTime: now,
+    feedCount: state.feedCount + 1,
+  });
+}
+
+// 11번: 밥주기 1단계 — 지금 시간대 슬롯을 확인하고, 아직 그 슬롯에 안 먹였으면 가챠(선택지 3개)를 연다.
+function doOpenMealGacha() {
+  if (state.isDead || !state.petName || state.petStage === 'egg') return;
+  if (state.spirit_mealGacha) return;
+
+  const now = Date.now();
+  const slot = getMealSlotAt(now);
+  if (!slot) return; // 지금은 식사시간이 아님(23시~05시)
+  if (hasFedSlotToday(state.spirit_mealLog, slot.id, now)) return; // 이미 이 끼니 줬음
+
+  setState({
+    spirit_mealGacha: { slotId: slot.id, optimalAmount: rollOptimalAmount(), choices: rollGachaChoices() },
+  });
+}
+
+// 11번: 밥주기 2단계 — 고른 양이 숨은 최적치에 가까울수록 포만감/케어품질 보너스가 크고,
+// 많이 벗어나면(과다/부족) 체중이 그만큼 움직인다.
+function doChooseMealAmount(amount) {
+  if (!state.spirit_mealGacha) return;
+
+  const { optimalAmount } = state.spirit_mealGacha;
+  const now = Date.now();
+  const diff = Math.abs(amount - optimalAmount);
+
+  const newFullness = Math.min(100, state.physical_fullness + amount);
+  const newIntimacy = Math.min(100, state.spirit_intimacy + BALANCE.FEED_INTIMACY_GAIN);
+
+  let weightDelta = 0;
+  if (diff > BALANCE.MEAL_SCORE_OK_DIFF) weightDelta = amount > optimalAmount ? BALANCE.MEAL_WEIGHT_DELTA_LARGE : -BALANCE.MEAL_WEIGHT_DELTA_LARGE;
+  else if (diff > BALANCE.MEAL_SCORE_BEST_DIFF) weightDelta = amount > optimalAmount ? BALANCE.MEAL_WEIGHT_DELTA_MILD : -BALANCE.MEAL_WEIGHT_DELTA_MILD;
+  const newWeight = Math.max(0, Math.min(100, state.physical_weight + weightDelta));
+
+  let newLock = state.dailyFortuneLock;
+  if (newLock && !newLock.isRescued && newLock.baseTier < 3) {
+    newLock = { ...newLock, isRescued: true, baseTier: newLock.baseTier + 1 };
+  }
+
+  const newPoopCount = Math.random() < BALANCE.POOP_SPAWN_PROBABILITY_ON_FEED
+    ? state.env_poopCount + 1
+    : state.env_poopCount;
+
+  setState({
+    physical_fullness: newFullness,
+    spirit_intimacy: newIntimacy,
+    physical_weight: newWeight,
+    env_poopCount: newPoopCount,
+    spirit_mealLog: [...state.spirit_mealLog, { time: now, amount, optimalAmount }],
+    spirit_mealGacha: null,
+    lastCareTime: now,
+    feedCount: state.feedCount + 1,
+    dailyFortuneLock: newLock,
+    ...resolveQuestPatch(state, 'feed', newIntimacy),
+  });
+}
+
+// 밥주기 버튼 클릭 핸들러 — egg면 부화, 아니면 가챠를 열되 실패(시간대 밖/이미 먹임)하면 안내한다.
+function handleFeedPress() {
+  if (state.petStage === 'egg') { doFeed(); return; }
+  doOpenMealGacha();
+  if (!state.spirit_mealGacha) {
+    alert('지금은 밥 줄 시간이 아니에요.\n아침(05~11시)·점심(11~17시)·저녁(17~23시)에 다시 시도해주세요.\n이미 이번 끼니를 줬을 수도 있어요.');
+  }
+}
+
+function doPlay() {
+  if (state.isDead) return;
+  if (!state.petName) return;
+  if (!hasMatchingActiveQuest(state, 'play')) return;
+  if (state.spirit_intimacy >= 100 || state.physical_fullness <= 10) return;
+
+  const now = Date.now();
+  const newIntimacy = Math.min(100, state.spirit_intimacy + BALANCE.PLAY_INTIMACY_GAIN);
+  setState({
+    spirit_intimacy: newIntimacy,
+    physical_fullness: Math.max(0, state.physical_fullness - BALANCE.PLAY_FULLNESS_LOSS),
+    physical_weight: Math.max(0, state.physical_weight - BALANCE.PLAY_WEIGHT_LOSS),
+    physical_cleanliness: Math.max(0, state.physical_cleanliness - BALANCE.PLAY_CLEANLINESS_LOSS),
+    spirit_lastPlayTime: now,
+    spirit_playCount: state.spirit_playCount + 1,
+    spirit_playCountSinceCheckpoint: state.spirit_playCountSinceCheckpoint + 1,
+    lastCareTime: now,
+    playCount: state.playCount + 1,
+    ...resolveQuestPatch(state, 'play', newIntimacy),
+  });
+}
+
+function doClean() {
+  if (state.isDead) return;
+  if (!state.petName) return;
+  if (!hasMatchingActiveQuest(state, 'clean')) return;
+  if (state.env_poopCount === 0) return;
+
+  const now = Date.now();
+  const newIntimacy = Math.min(100, state.spirit_intimacy + BALANCE.CLEAN_INTIMACY_GAIN);
+  setState({
+    env_poopCount: 0,
+    env_lastCleanTime: now,
+    env_cleanLog: [...state.env_cleanLog, { time: now, dirtinessBefore: 100 - state.physical_cleanliness }],
+    spirit_intimacy: newIntimacy,
+    lastCareTime: now,
+    cleanCount: state.cleanCount + 1,
+    ...resolveQuestPatch(state, 'clean', newIntimacy),
+  });
+}
+
+function doBathe() {
+  if (state.isDead) return;
+  if (!state.petName) return;
+  if (!hasMatchingActiveQuest(state, 'bathe')) return;
+  if (state.physical_cleanliness >= 100) return;
+
+  const now = Date.now();
+  setState({
+    physical_cleanliness: 100,
+    physical_lastBatheTime: now,
+    lastCareTime: now,
+    ...resolveQuestPatch(state, 'bathe', state.spirit_intimacy),
+  });
+}
+
+function doPet() {
+  if (state.isDead) return;
+  if (!hasMatchingActiveQuest(state, 'pet')) return;
+  if (state.spirit_intimacy >= 100) return;
+
+  const now = Date.now();
+  const newIntimacy = Math.min(100, state.spirit_intimacy + BALANCE.PET_INTIMACY_GAIN);
+  setState({
+    spirit_intimacy: newIntimacy,
+    spirit_lastPlayTime: now,
+    spirit_playCount: state.spirit_playCount + 1,
+    spirit_playCountSinceCheckpoint: state.spirit_playCountSinceCheckpoint + 1,
+    lastCareTime: now,
+    petCount: state.petCount + 1,
+    ...resolveQuestPatch(state, 'pet', newIntimacy),
+  });
+}
+
+function doGiveMedicine() {
+  if (state.isDead || !state.petName) return;
+  if (state.physical_health !== 'sick') return;
+  const now = Date.now();
+
+  if (state.physical_medicineDoses === 0) {
+    setState({ physical_medicineDoses: 1, physical_firstMedicineDoseTime: now });
+    return;
+  }
+  const withinWindow = state.physical_firstMedicineDoseTime !== null
+    && now - state.physical_firstMedicineDoseTime <= BALANCE.MEDICINE_CURE_WINDOW_HOURS * ONE_HOUR_MS;
+  if (withinWindow && state.physical_medicineDoses + 1 >= BALANCE.MEDICINE_DOSES_REQUIRED) {
+    setState({ physical_health: 'healthy', physical_sickSince: null, physical_medicineDoses: 0, physical_firstMedicineDoseTime: null });
+    return;
+  }
+  setState({ physical_medicineDoses: 1, physical_firstMedicineDoseTime: now });
+}
+
+function doVaccinate() {
+  if (state.isDead || !state.petName) return;
+  if (!hasMatchingActiveQuest(state, 'vaccinate')) return;
+  if (state.physical_health === 'sick') return;
+  const now = Date.now();
+  if (state.physical_vaccinatedUntil && now < state.physical_vaccinatedUntil) return;
+  setState({
+    physical_vaccinatedUntil: now + BALANCE.VACCINE_PROTECTION_DAYS * DAY_MS,
+    ...resolveQuestPatch(state, 'vaccinate', state.spirit_intimacy),
+  });
+}
+
+// 9/11번: 퀘스트 배너를 탭하면 해당 액션을 바로 실행해서 해결한다.
+function handleResolveQuest() {
+  const quest = state.spirit_activeQuest ? PET_QUESTS.find((q) => q.id === state.spirit_activeQuest.questId) : null;
+  if (!quest) return;
+  const actionMap = { feed: doOpenMealGacha, play: doPlay, pet: doPet, bathe: doBathe, clean: doClean, vaccinate: doVaccinate };
+  actionMap[quest.resolveAction]?.();
+}
+
+function answerDialogue(traits) {
+  if (state.isDead) return false;
+  const today = new Date().toISOString().split('T')[0];
+  const now = Date.now();
+  const usage = state.dailyDialogueUsage && state.dailyDialogueUsage.date === today
+    ? state.dailyDialogueUsage
+    : { date: today, count: 0, lastDialogueTime: 0 };
+
+  if (usage.count >= BALANCE.DIALOGUE_DAILY_CAP) return false;
+  if (usage.lastDialogueTime && now - usage.lastDialogueTime < BALANCE.DIALOGUE_COOLDOWN_HOURS * ONE_HOUR_MS) return false;
+
+  const newMbtiScores = { ...state.spirit_mbtiScores };
+  traits.forEach((trait) => {
+    if (trait in newMbtiScores) newMbtiScores[trait] += 1;
+  });
+
+  setState({
+    spirit_mbtiScores: newMbtiScores,
+    spirit_intimacy: Math.min(100, state.spirit_intimacy + BALANCE.DIALOGUE_INTIMACY_GAIN),
+    dailyDialogueUsage: { date: today, count: usage.count + 1, lastDialogueTime: now },
+  });
+  return true;
+}
+
+// =========================================================================
+// 0/2/3번: 성장 판정 유일 권한 + 체크포인트별 진화등급/종/MBTI 확정
+// =========================================================================
+function buildMemorial(s) {
+  const mbti = s.spirit_finalizedMbti ?? calculateMBTI(s);
+  const careScore = s.feedCount * 10 + s.playCount * 15 + s.cleanCount * 5;
+  return { name: s.petName, mbti, score: careScore, diedAt: Date.now() };
+}
+
+function checkAging() {
+  if (state.petStage === 'egg' || state.isDead) return;
+  if (!state.petBirthDate) return;
+
+  const now = Date.now();
+  const daysElapsed = Math.floor((now - state.petBirthDate) / DAY_MS);
+
+  if (daysElapsed >= BALANCE.LIFESPAN_MAX_DAYS) {
+    setState({ isDead: true, petStage: 'memorial', memorials: [...state.memorials, buildMemorial(state)] });
+    return;
+  }
+
+  let newStage = state.petStage;
+  if (daysElapsed >= 70) newStage = 'senior';
+  else if (daysElapsed >= 10) newStage = 'adult';
+  else if (daysElapsed >= 5) newStage = 'teen';
+  else if (daysElapsed >= 3) newStage = 'junior';
+  else if (daysElapsed >= 1) newStage = 'baby';
+
+  if (newStage === state.petStage) return;
+
+  const isCheckpoint = BALANCE.EVOLUTION_CHECKPOINT_DAYS.some(
+    (d) => daysElapsed >= d && state.physical_lastCheckpointDay < d
+  );
+
+  if (!isCheckpoint) {
+    setState({ petStage: newStage });
+    return;
+  }
+
+  const window = buildCareQualityWindow(state, daysElapsed);
+  const evolution = evaluateEvolution(window);
+  const isAdultLock = newStage === 'adult' && state.petStage !== 'adult' && !state.spirit_finalizedMbti;
+
+  setState({
+    petStage: newStage,
+    physical_evolutionGrade: evolution.grade,
+    physical_species: isAdultLock ? evolution.species : state.physical_species,
+    spirit_finalizedMbti: isAdultLock ? calculateMBTI(state) : state.spirit_finalizedMbti,
+    physical_lastCheckpointDay: daysElapsed,
+    spirit_mealLog: [],
+    env_cleanLog: [],
+    spirit_playCountSinceCheckpoint: 0,
+    spirit_questResponseLog: [],
+  });
+}
+
+// =========================================================================
+// 시간 경과 통합 처리 (petStore.ts applyDegradation()과 동일)
+// =========================================================================
+function applyDegradation(hoursPassed) {
+  checkAging();
+  if (state.isDead || hoursPassed <= 0) return;
+
+  const sickMultiplier = state.physical_health === 'sick' ? 1.5 : 1;
+  const poopPenalty = state.env_poopCount >= BALANCE.POOP_NEGLECT_THRESHOLD_COUNT;
+
+  const lossFullness = Math.floor(hoursPassed * BALANCE.DECAY_FULLNESS_PER_HOUR * sickMultiplier);
+  const lossIntimacy = Math.floor(hoursPassed * BALANCE.DECAY_INTIMACY_PER_HOUR * sickMultiplier);
+  const cleanDecayRate = poopPenalty ? BALANCE.DECAY_CLEANLINESS_PER_HOUR_POOP_PENALTY : BALANCE.DECAY_CLEANLINESS_PER_HOUR;
+  const lossClean = Math.floor(hoursPassed * cleanDecayRate * sickMultiplier);
+
+  const newFullness = Math.max(0, state.physical_fullness - lossFullness);
+  const newIntimacy = Math.max(0, state.spirit_intimacy - lossIntimacy);
+  const newClean = Math.max(0, state.physical_cleanliness - lossClean);
+
+  let newDoses = state.physical_medicineDoses;
+  let newFirstDoseTime = state.physical_firstMedicineDoseTime;
+  if (newDoses === 1 && newFirstDoseTime !== null) {
+    const elapsedHours = (Date.now() - newFirstDoseTime) / ONE_HOUR_MS;
+    if (elapsedHours > BALANCE.MEDICINE_CURE_WINDOW_HOURS) {
+      newDoses = 0; newFirstDoseTime = null;
     }
+  }
 
-    function feed(amount) {
-        if (daysPassed >= 90) return;
-        dailyFeeds.push(amount);
-        updateUI();
+  const target = computeHappinessTarget({
+    fullness: newFullness, cleanliness: newClean, intimacy: newIntimacy,
+    isSick: state.physical_health === 'sick', weight: state.physical_weight,
+  });
+  const newHappiness = Math.round(state.spirit_happiness * (1 - BALANCE.HAPPINESS_EMA_ALPHA) + target * BALANCE.HAPPINESS_EMA_ALPHA);
+
+  let newHealth = state.physical_health;
+  let newSickSince = state.physical_sickSince;
+  if (state.physical_health === 'healthy') {
+    const daysElapsed = state.petBirthDate ? Math.floor((Date.now() - state.petBirthDate) / DAY_MS) : 0;
+    const agingBonus = daysElapsed > BALANCE.HEALTHSPAN_END_DAY
+      ? (daysElapsed - BALANCE.HEALTHSPAN_END_DAY) * (BALANCE.AGING_SICK_BONUS_PER_DAY / 100) : 0;
+    const vaccinated = state.physical_vaccinatedUntil !== null && Date.now() < state.physical_vaccinatedUntil;
+    let probability = BALANCE.SICKNESS_BASE_PROBABILITY;
+    if (state.env_poopCount >= BALANCE.POOP_NEGLECT_THRESHOLD_COUNT) probability += 0.10;
+    if (newClean < BALANCE.CLEANLINESS_DIRTY) probability += 0.10;
+    if (state.physical_weight >= 80 || state.physical_weight <= 20) probability += 0.05;
+    if (newHappiness < 20) probability += 0.05;
+    probability += agingBonus;
+    if (vaccinated) probability -= 0.10;
+    probability = Math.max(0, probability);
+    if (Math.random() < probability) { newHealth = 'sick'; newSickSince = Date.now(); }
+  }
+
+  let isDead = false;
+  let newStage = state.petStage;
+  let newMemorials = state.memorials;
+  const sickTooLong = newHealth === 'sick' && newSickSince !== null
+    && (Date.now() - newSickSince) / ONE_HOUR_MS >= BALANCE.SICK_DEATH_THRESHOLD_HOURS;
+  if ((newFullness === 0 || sickTooLong) && !state.isDead) {
+    isDead = true; newStage = 'memorial';
+    newMemorials = [...state.memorials, buildMemorial(state)];
+  }
+
+  // 11번: 펫 퀘스트 스폰/만료 — 하루 3~5회 예산제. 매 틱 고정 확률로 계속 스폰하면 채점 시스템을
+  // 무의미하게 만드는 스팸이 되므로 하루 총량으로 캡을 씌운다.
+  const today = new Date().toISOString().split('T')[0];
+  let dailyBudget = state.spirit_dailyQuestBudget;
+  if (!dailyBudget || dailyBudget.date !== today) {
+    dailyBudget = { date: today, target: randomInt(BALANCE.DAILY_QUEST_TARGET_MIN, BALANCE.DAILY_QUEST_TARGET_MAX), spawnedCount: 0 };
+  }
+
+  let newActiveQuest = state.spirit_activeQuest;
+  if (newActiveQuest && isQuestExpired(newActiveQuest.spawnedAt, Date.now())) {
+    newActiveQuest = null;
+  }
+  if (!newActiveQuest && !isDead && dailyBudget.spawnedCount < dailyBudget.target) {
+    const spawnProbability = getQuestSpawnProbability(state.spirit_finalizedMbti);
+    if (Math.random() < spawnProbability) {
+      const hoursSinceLastPlay = state.spirit_lastPlayTime ? (Date.now() - state.spirit_lastPlayTime) / ONE_HOUR_MS : null;
+      const quest = pickQuest(PET_QUESTS, {
+        fullness: newFullness, happiness: newHappiness, cleanliness: newClean,
+        poopCount: state.env_poopCount, hoursSinceLastPlay,
+        vaccinatedUntil: state.physical_vaccinatedUntil, now: Date.now(),
+      }, state.spirit_finalizedMbti);
+      if (quest) {
+        newActiveQuest = { questId: quest.id, spawnedAt: Date.now() };
+        dailyBudget = { ...dailyBudget, spawnedCount: dailyBudget.spawnedCount + 1 };
+      }
     }
+  }
 
-    function play() {
-        if (daysPassed >= 90) return;
-        playCount++;
-        updateUI();
-    }
+  setState({
+    physical_fullness: newFullness,
+    spirit_intimacy: newIntimacy,
+    physical_cleanliness: newClean,
+    spirit_happiness: newHappiness,
+    physical_health: newHealth,
+    physical_sickSince: newSickSince,
+    physical_medicineDoses: newDoses,
+    physical_firstMedicineDoseTime: newFirstDoseTime,
+    spirit_activeQuest: newActiveQuest,
+    spirit_dailyQuestBudget: dailyBudget,
+    isDead, petStage: newStage, memorials: newMemorials,
+    lastCareTime: Date.now(),
+  });
+}
 
-    function clean() {
-        if (daysPassed >= 90) return;
-        let score = 0;
-        if (dirtLevel >= 70) {
-            score = 10;
-            log(`더러울 때 청소해서 +10점 획득!`);
-        } else if (dirtLevel >= 30) {
-            score = 5;
-            log(`적당할 때 청소해서 +5점 획득.`);
-        } else {
-            score = -2;
-            log(`너무 깨끗한데 계속 청소해서 페널티! (-2점)`);
-        }
-        totalScore += score;
-        dirtLevel = 0;
-        cleanCount++;
-        updateUI();
-    }
+function doTimeTravel(hours) {
+  if (state.isDead) return;
+  applyDegradation(hours);
+}
 
-    function endDay() {
-        if (daysPassed >= 90) return;
-        
-        // 밥주기 정산
-        let feedSum = dailyFeeds.reduce((a,b)=>a+b, 0);
-        let feedScore = 0;
-        if (feedSum >= 90 && feedSum <= 110) {
-            // 적정량
-            let hasPenalty = dailyFeeds.some(amt => amt < 20 || amt > 50);
-            if (!hasPenalty && dailyFeeds.length >= 2) {
-                feedScore = 30; // 최고점
-                log(`[정산] 이상적인 식사 분배로 보너스 획득! (+30점)`);
-            } else {
-                feedScore = 15;
-                log(`[정산] 하루 총량은 맞췄으나 분배가 아쉽습니다. (+15점)`);
-            }
-        } else {
-            feedScore = 0;
-            log(`[정산] 밥을 너무 적게 주거나 폭식했습니다. (0점)`);
-        }
-        
-        // 놀아주기 정산
-        let playScore = 0;
-        if (playCount === 3) {
-            playScore = 20;
-            log(`[정산] 적절하게 놀아주었습니다! (+20점)`);
-        } else if (playCount > 3) {
-            playScore = 5;
-            log(`[정산] 너무 많이 놀아줘서 피로가 쌓였습니다. (+5점)`);
-        } else if (playCount > 0) {
-            playScore = playCount * 5;
-        }
-        
-        totalScore += (feedScore + playScore);
-        
-        // 하루 초기화 및 시간 1일 경과
-        dailyFeeds = [];
-        playCount = 0;
-        cleanCount = 0;
-        dailyDialogueCount = 0; // 대화 일일 횟수도 함께 리셋 (dailyFortuneLock과 동일한 date 리셋 패턴)
-        passTime(1);
-    }
+function syncOfflineTime() {
+  if (state.isDead) return;
+  const now = Date.now();
+  const lastTime = state.lastCareTime;
+  if (lastTime > 0 && lastTime < now) {
+    const diffHours = (now - lastTime) / (1000 * 60 * 60);
+    if (diffHours >= 1) applyDegradation(diffHours);
+  }
+}
 
-    // ==== 대화(Talk) & 쓰다듬기 — MBTI 성격 형성 시뮬레이션 ====
-    const QUESTIONS = [
-        { q: "주인님이 안 놀아줘서 심심해요! 어떻게 할까요?", choices: [
-            { text: "밖으로 나가서 다른 친구를 찾아본다", trait: 'E' },
-            { text: "혼자 조용히 낮잠을 잔다", trait: 'I' },
-            { text: "주인님 옆에서 얌전히 기다린다", trait: 'J' },
-        ]},
-        { q: "낯선 장난감을 발견했어요!", choices: [
-            { text: "일단 만지고 뜯어보며 파악한다", trait: 'S' },
-            { text: "이게 뭘까 상상의 나래를 펼친다", trait: 'N' },
-            { text: "일단 무시하고 하던 일을 계속한다", trait: 'T' },
-        ]},
-        { q: "친구 펫이 실수로 내 밥을 먹었어요.", choices: [
-            { text: "논리적으로 상황을 따져 화를 낸다", trait: 'T' },
-            { text: "속상하지만 친구 마음도 이해해준다", trait: 'F' },
-            { text: "그냥 넘어가고 새로 밥을 요청한다", trait: 'P' },
-        ]},
-        { q: "주인님이 오늘 하루 계획을 물어봤어요.", choices: [
-            { text: "미리 정해둔 대로 착착 움직인다", trait: 'J' },
-            { text: "그때그때 기분따라 정한다", trait: 'P' },
-            { text: "주인님이 정해주는 대로 따른다", trait: 'F' },
-        ]},
+function doHatch() {
+  if (state.petStage !== 'egg') return;
+  const randomName = state.petName || PET_NAMES[Math.floor(Math.random() * PET_NAMES.length)];
+  setState({ petName: randomName, petStage: 'baby', petBirthDate: Date.now() });
+}
+
+function doGacha() {
+  const randomName = GACHA_PET_NAMES[Math.floor(Math.random() * GACHA_PET_NAMES.length)];
+  setState({ petName: randomName, petTier: 1, ...freshPetFields() });
+}
+
+// =========================================================================
+// Setup screen
+// =========================================================================
+let setupGender = '남';
+function selectGender(g) {
+  setupGender = g;
+  document.getElementById('genderMaleBtn').classList.toggle('active', g === '남');
+  document.getElementById('genderFemaleBtn').classList.toggle('active', g === '여');
+}
+async function handleSaveProfile() {
+  const birthDate = document.getElementById('setupBirthDate').value.trim();
+  const birthTime = document.getElementById('setupBirthTime').value.trim();
+  if (!birthDate || !birthTime) {
+    alert('생년월일과 태어난 시간을 모두 입력해주세요.');
+    return;
+  }
+
+  try {
+    const uuidStr = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: `guest_${uuidStr}`, password: uuidStr })
+    });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.detail || 'Register Failed');
+    const token = data.access_token;
+
+    const year = parseInt(birthDate.split('-')[0], 10);
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - year;
+    const age_group = `${Math.floor(age / 10) * 10}s`;
+
+    await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ age_group, gender: setupGender })
+    });
+
+    setState({ authToken: token, userProfile: { birthDate, birthTime, gender: setupGender } });
+    afterProfileReady();
+  } catch (e) {
+    console.error(e);
+    alert('오류: 계정 생성 실패');
+  }
+}
+
+// =========================================================================
+// Rendering
+// =========================================================================
+function render() {
+  const hasProfile = !!state.userProfile;
+  document.getElementById('setupScreen').classList.toggle('hidden', hasProfile);
+  document.getElementById('mainScreen').classList.toggle('hidden', !hasProfile);
+  if (!hasProfile) return;
+
+  // Pet image
+  const petImageEl = document.getElementById('petImage');
+  const petEmojiEl = document.getElementById('petEmoji');
+  if (state.isDead || state.petStage === 'memorial') {
+    petImageEl.classList.add('hidden');
+    petEmojiEl.classList.remove('hidden');
+    updatePetAnimation(state.petName, state.petStage, state.physical_species, false);
+  } else {
+    petEmojiEl.classList.add('hidden');
+    petImageEl.classList.remove('hidden');
+    updatePetAnimation(state.petName, state.petStage, state.physical_species, true);
+  }
+  document.getElementById('stageText').textContent = state.isDead ? '별이 되었습니다...' : `Stage: ${state.petStage.toUpperCase()}`;
+
+  // 8번: 아픈 상태 / 7번: 응가 오버레이
+  document.getElementById('petSickIcon').classList.toggle('hidden', state.isDead || state.physical_health !== 'sick');
+  const poopBadge = document.getElementById('petPoopBadge');
+  if (!state.isDead && state.env_poopCount > 0) {
+    poopBadge.textContent = '💩'.repeat(Math.min(state.env_poopCount, 3));
+    poopBadge.classList.remove('hidden');
+  } else {
+    poopBadge.classList.add('hidden');
+  }
+
+  // 9/11번: 펫 퀘스트 배너 — 탭하면 handleResolveQuest()로 해당 액션을 바로 실행한다.
+  const quest = state.spirit_activeQuest ? PET_QUESTS.find((q) => q.id === state.spirit_activeQuest.questId) : null;
+  document.getElementById('questBanner').classList.toggle('hidden', !quest);
+  if (quest) document.getElementById('questText').textContent = `💬 ${quest.text}`;
+
+  // Stats — 11번: 게이지 바로 표시
+  const setGauge = (fillId, textId, value) => {
+    document.getElementById(fillId).style.width = `${Math.max(0, Math.min(100, value))}%`;
+    document.getElementById(textId).textContent = value;
+  };
+  setGauge('gaugeFullness', 'statFullness', state.physical_fullness);
+  setGauge('gaugeIntimacy', 'statIntimacy', state.spirit_intimacy);
+  setGauge('gaugeCleanliness', 'statCleanliness', state.physical_cleanliness);
+  setGauge('gaugeWeight', 'statWeight', state.physical_weight);
+  setGauge('gaugeHappiness', 'statHappiness', state.spirit_happiness);
+  document.getElementById('statPoopRow').classList.toggle('hidden', state.env_poopCount === 0);
+  document.getElementById('statPoop').textContent = state.env_poopCount;
+  document.getElementById('statHealth').textContent = state.physical_health === 'sick' ? '🤒 건강: 아픔' : '💪 건강: 양호';
+  document.getElementById('statMbti').textContent = calculateMBTI(state);
+
+  // Fortune
+  const baseTier = generateTodayBaseTier(state.userProfile);
+  const finalTier = calculateFortuneTier(state, baseTier);
+  document.getElementById('fortuneTier').textContent = finalTier;
+  document.getElementById('fortuneDesc').textContent = getMockFortuneText(finalTier, '甲', '子');
+
+  // Action visibility
+  document.getElementById('aliveActions').classList.toggle('hidden', state.isDead);
+  document.getElementById('deadActions').classList.toggle('hidden', !state.isDead);
+  document.getElementById('gachaBtn').classList.toggle('hidden', state.petStage !== 'egg');
+  document.getElementById('feedBtn').textContent = state.petStage === 'egg' ? '부화시키기 🥚' : '밥주기 🍚';
+  document.getElementById('talkBtn').classList.toggle('hidden', state.petStage === 'egg');
+  document.getElementById('healthRow').classList.toggle('hidden', state.petStage === 'egg' || state.physical_health !== 'sick');
+  document.getElementById('medicineBtn').classList.toggle('hidden', state.physical_health !== 'sick');
+  document.getElementById('medicineBtn').textContent = `약주기 💊 (${state.physical_medicineDoses}/${BALANCE.MEDICINE_DOSES_REQUIRED})`;
+
+  document.getElementById('talkMenuPersonalityBtn').textContent =
+    state.petStage === 'adult' ? '💬 일상대화' : '🧠 성향 대화';
+
+  // 11번: 밥주기 가챠 모달
+  const gachaModal = document.getElementById('mealGachaModal');
+  if (state.spirit_mealGacha) {
+    const slotLabel = BALANCE.MEAL_SLOTS.find((s) => s.id === state.spirit_mealGacha.slotId)?.label ?? '';
+    document.getElementById('mealGachaSubtitle').textContent = `${slotLabel} 식사량을 골라주세요`;
+    const choicesBox = document.getElementById('mealGachaChoices');
+    choicesBox.innerHTML = '';
+    state.spirit_mealGacha.choices.forEach((amount) => {
+      const btn = document.createElement('button');
+      btn.className = 'gacha-choice-btn';
+      btn.textContent = amount;
+      btn.onclick = () => doChooseMealAmount(amount);
+      choicesBox.appendChild(btn);
+    });
+    gachaModal.classList.remove('hidden');
+  } else {
+    gachaModal.classList.add('hidden');
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.add('hidden');
+}
+
+// =========================================================================
+// Talk menu
+// =========================================================================
+function openTalkMenu() {
+  document.getElementById('talkMenuModal').classList.remove('hidden');
+}
+function selectPersonality() {
+  closeModal('talkMenuModal');
+  if (state.petStage === 'adult') {
+    openLiveTalk();
+  } else {
+    openDialogueModal();
+  }
+}
+function selectCheckIn() {
+  closeModal('talkMenuModal');
+  openCheckinModal();
+}
+
+// =========================================================================
+// Pet dialogue (personality Q&A, non-adult stages)
+// =========================================================================
+let currentDialogue = null;
+
+function dialogueUsageNow() {
+  const today = new Date().toISOString().split('T')[0];
+  return state.dailyDialogueUsage && state.dailyDialogueUsage.date === today
+    ? state.dailyDialogueUsage
+    : { date: today, count: 0, lastDialogueTime: 0 };
+}
+
+function openDialogueModal() {
+  const usage = dialogueUsageNow();
+  const isDailyCapped = usage.count >= BALANCE.DIALOGUE_DAILY_CAP;
+  const cooldownRemainingMs = usage.lastDialogueTime ? BALANCE.DIALOGUE_COOLDOWN_HOURS * ONE_HOUR_MS - (Date.now() - usage.lastDialogueTime) : 0;
+  const isBlocked = isDailyCapped || cooldownRemainingMs > 0;
+
+  const body = document.getElementById('dialogueBody');
+  const choicesBox = document.getElementById('dialogueChoices');
+  choicesBox.innerHTML = '';
+
+  if (isBlocked) {
+    body.textContent = isDailyCapped
+      ? '오늘은 대화를 너무 많이 해서 지쳤어요... (내일 다시 시도해주세요)'
+      : '조금 전에 대화했어요. 잠시 후에 다시 말 걸어주세요.';
+    currentDialogue = null;
+  } else {
+    currentDialogue = DIALOGUES[Math.floor(Math.random() * DIALOGUES.length)];
+    body.textContent = currentDialogue.situation;
+    currentDialogue.choices.forEach((choice) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = choice.text;
+      btn.onclick = () => handleDialogueChoice(choice);
+      choicesBox.appendChild(btn);
+    });
+  }
+
+  document.getElementById('dialogueModal').classList.remove('hidden');
+}
+function handleDialogueChoice(choice) {
+  answerDialogue([choice.trait]);
+  document.getElementById('dialogueBody').textContent = '고마워요, 주인님! 조금 더 저를 알게 된 것 같아요.';
+  document.getElementById('dialogueChoices').innerHTML = '';
+}
+function closeDialogueModal() {
+  currentDialogue = null;
+  closeModal('dialogueModal');
+}
+
+// =========================================================================
+// Check-in (안부 묻기) — read-only flavor text
+// =========================================================================
+function getConditionLine(fullness, cleanliness, isDead) {
+  if (isDead) return '...';
+  if (fullness < 30 || cleanliness < 30) return '음... 몸이 좀 찌뿌둥해요. 밥도 부족하고 씻지도 못했거든요 😢';
+  if (fullness >= 70 && cleanliness >= 70) return '완전 쌩쌩해요! 걱정 마세요 😊';
+  return '그럭저럭 괜찮아요!';
+}
+function getHungerLine(fullness) {
+  if (fullness < 30) return '배고파요, 밥 주세요 🥺';
+  if (fullness >= 70) return '든든해요!';
+  return '그냥 그래요.';
+}
+function getCleanlinessLine(cleanliness) {
+  if (cleanliness < 30) return '음... 저 좀 더러운 것 같아요, 목욕시켜주세요 🛁';
+  if (cleanliness >= 70) return '깨끗해요! 걱정 마세요 ✨';
+  return '적당해요.';
+}
+function openCheckinModal() {
+  renderCheckin(null);
+  document.getElementById('checkinModal').classList.remove('hidden');
+}
+function renderCheckin(responseText) {
+  const box = document.getElementById('checkinBody');
+  box.innerHTML = '';
+  if (responseText) {
+    const p = document.createElement('div');
+    p.className = 'card-body-text';
+    p.textContent = responseText;
+    box.appendChild(p);
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn checkin';
+    btn.textContent = '다른 질문하기';
+    btn.onclick = () => renderCheckin(null);
+    box.appendChild(btn);
+  } else {
+    const questions = [
+      { label: '아픈데는 없어?', getResponse: () => getConditionLine(state.physical_fullness, state.physical_cleanliness, state.isDead) },
+      { label: '배는 안고파?', getResponse: () => getHungerLine(state.physical_fullness) },
+      { label: '집은 안더러워?', getResponse: () => getCleanlinessLine(state.physical_cleanliness) },
     ];
+    questions.forEach((q) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn checkin';
+      btn.textContent = q.label;
+      btn.onclick = () => renderCheckin(q.getResponse());
+      box.appendChild(btn);
+    });
+  }
+}
+function closeCheckinModal() {
+  closeModal('checkinModal');
+}
 
-    const ADULT_LINES = {
-        ISTJ: "주인님, 오늘 할 일은 다 하셨나요?", ISFJ: "주인님 편히 쉬세요, 제가 지켜볼게요.",
-        INFJ: "가끔 세상 모든 마음을 다 이해하고 싶어져요.", INTJ: "다음 계획은 이미 세워뒀어요.",
-        ISTP: "그거, 제가 한번 뜯어봐도 될까요?", ISFP: "오늘 하늘 색깔 진짜 예쁘네요.",
-        INFP: "주인님, 우리의 인연은 운명 같아요.", INTP: "주인님, 우주의 끝은 어디일까요?",
-        ESTP: "심심한데 밖에 나가서 뭐라도 하죠!", ESFP: "오늘 같이 신나게 놀아요!",
-        ENFP: "새로운 모험을 떠나볼까요, 주인님?", ENTP: "이거 완전 다르게 해볼 수도 있을 것 같은데요?",
-        ESTJ: "주인님, 오늘 일정 정리해드릴까요?", ESFJ: "다들 잘 지내고 있는지 걱정되네요.",
-        ENFJ: "주인님이 행복해야 저도 행복해요.", ENTJ: "제가 이 집의 계획을 이끌어볼게요."
-    };
+// =========================================================================
+// Live talk (Gemini Live relay via backend WebSocket)
+// =========================================================================
+let liveTalkWs = null;
+let liveTalkStatus = 'connecting';
+let liveTalkPendingId = null;
+let liveTalkMessages = [];
 
-    let mbtiScores = { E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0 };
-    let finalizedMbti = null;
-    let dailyDialogueCount = 0;
-    let petCount = 0;
-    let prevStage = 'Egg';
+function wsUrl() {
+  const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+  return `${proto}${location.host}/ws/live-talk`;
+}
 
-    function computeMbti() {
-        if (finalizedMbti) return finalizedMbti;
-        const pick = (a, b, tiebreak) => {
-            if (mbtiScores[a] === mbtiScores[b]) return tiebreak;
-            return mbtiScores[a] > mbtiScores[b] ? a : b;
-        };
-        // 동점 시 기존 케어 행동 클릭 횟수를 2차 가중치(타이브레이커)로 사용
-        return pick('E', 'I', playCount >= cleanCount ? 'E' : 'I')
-             + pick('S', 'N', cleanCount > 0 ? 'S' : 'N')
-             + pick('T', 'F', dailyFeeds.length > playCount ? 'T' : 'F')
-             + pick('J', 'P', 'J');
-    }
+function openLiveTalk() {
+  const mbti = state.spirit_finalizedMbti;
+  document.getElementById('liveTalkTitle').textContent = `일상대화 ${mbti ? `(${mbti})` : ''}`;
+  liveTalkMessages = [];
+  liveTalkStatus = 'connecting';
+  liveTalkPendingId = null;
+  renderLiveTalkMessages();
+  document.getElementById('liveTalkConnecting').classList.remove('hidden');
+  document.getElementById('liveTalkFallbackWarn').classList.add('hidden');
+  document.getElementById('liveTalkModal').classList.remove('hidden');
 
-    function updateMbtiUI() {
-        const badge = document.getElementById('liveMbti');
-        badge.innerText = computeMbti() + (finalizedMbti ? ' 🔒 확정' : ' (변동 가능)');
-        badge.className = 'mbti-badge' + (finalizedMbti ? ' locked' : '');
-        document.getElementById('dialogueCount').innerText = dailyDialogueCount;
-        document.getElementById('petCountLabel').innerText = petCount;
-    }
+  let timedOut = false;
+  const ws = new WebSocket(wsUrl());
+  liveTalkWs = ws;
 
-    function talk() {
-        if (daysPassed >= 90) return;
-        const stage = document.getElementById('petStage').innerText;
+  const fallbackToLocal = () => {
+    liveTalkStatus = 'fallback';
+    document.getElementById('liveTalkConnecting').classList.add('hidden');
+    document.getElementById('liveTalkFallbackWarn').classList.remove('hidden');
+    liveTalkMessages.push({ id: `fallback-${Date.now()}`, role: 'pet', text: getAdultFallbackLine(mbti) });
+    renderLiveTalkMessages();
+  };
 
-        if (stage === 'Adult') {
-            const mbti = computeMbti();
-            const line = ADULT_LINES[mbti] || "주인님, 오늘도 좋은 하루예요!";
-            document.getElementById('dialogueQuestion').innerText = `[${mbti}] ${line}`;
-            document.getElementById('dialogueChoices').innerHTML = '';
-            log(`(성체 대사) ${mbti}: ${line}`);
-            return;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    fallbackToLocal();
+    ws.close();
+  }, 5000);
+
+  ws.onopen = () => {
+    clearTimeout(timeoutId);
+    if (timedOut) return;
+    liveTalkStatus = 'connected';
+    document.getElementById('liveTalkConnecting').classList.add('hidden');
+    const ageDays = state.petBirthDate ? Math.floor((Date.now() - state.petBirthDate) / DAY_MS) : 0;
+    ws.send(JSON.stringify({
+      type: 'init',
+      mbti: mbti,
+      petName: state.petName,
+      petStage: state.petStage,
+      ageDays: ageDays,
+      fullness: state.physical_fullness,
+      intimacy: state.spirit_intimacy,
+      cleanliness: state.physical_cleanliness,
+      weight: state.physical_weight,
+      happiness: state.spirit_happiness,
+      health: state.physical_health,
+      userName: state.userProfile?.name || '주인',
+      userGender: state.userProfile?.gender || '모름',
+      userBirthDate: state.userProfile?.birthDate || '모름',
+      userPhone: state.userProfile?.phone || '모름',
+      userRegion: state.userProfile?.region || '모름',
+      fortuneTier: state.dailyFortuneLock ? state.dailyFortuneLock.baseTier : 3
+    }));
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.error) { fallbackToLocal(); return; }
+      if (data.text) {
+        if (liveTalkPendingId) {
+          const m = liveTalkMessages.find((mm) => mm.id === liveTalkPendingId);
+          if (m) m.text += data.text;
+        } else {
+          const id = `pet-${Date.now()}`;
+          liveTalkPendingId = id;
+          liveTalkMessages.push({ id, role: 'pet', text: data.text });
         }
+        renderLiveTalkMessages();
+      }
+      if (data.done) liveTalkPendingId = null;
+    } catch (e) { /* ignore malformed frame */ }
+  };
 
-        if (dailyDialogueCount >= 5) {
-            document.getElementById('dialogueQuestion').innerText = "오늘은 너무 많이 대화해서 지쳤어요... (일일 한도 5회 도달)";
-            document.getElementById('dialogueChoices').innerHTML = '';
-            log('대화 실패: 일일 한도(5회) 초과 — 스팸 방지 정상 동작.');
-            return;
-        }
+  ws.onerror = () => {
+    clearTimeout(timeoutId);
+    fallbackToLocal();
+  };
+  ws.onclose = () => {
+    clearTimeout(timeoutId);
+  };
+}
 
-        const qa = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
-        document.getElementById('dialogueQuestion').innerText = qa.q;
-        const box = document.getElementById('dialogueChoices');
-        box.innerHTML = '';
-        qa.choices.forEach((c) => {
-            const btn = document.createElement('button');
-            btn.className = 'choice-btn';
-            btn.innerText = c.text;
-            btn.onclick = () => answerDialogue(c.trait, qa.q, c.text);
-            box.appendChild(btn);
-        });
+function renderLiveTalkMessages() {
+  const box = document.getElementById('liveTalkMessages');
+  box.innerHTML = '';
+  liveTalkMessages.forEach((m) => {
+    const b = document.createElement('div');
+    b.className = 'bubble ' + (m.role === 'user' ? 'user' : 'pet');
+    b.textContent = m.text;
+    box.appendChild(b);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+function sendLiveTalkMessage() {
+  const input = document.getElementById('liveTalkInput');
+  const text = input.value.trim();
+  if (!text) return;
+  liveTalkMessages.push({ id: `user-${Date.now()}`, role: 'user', text });
+
+  if (liveTalkStatus === 'connected' && liveTalkWs && liveTalkWs.readyState === WebSocket.OPEN) {
+    liveTalkWs.send(JSON.stringify({ type: 'message', text }));
+  } else {
+    liveTalkMessages.push({ id: `fallback-${Date.now()}`, role: 'pet', text: getAdultFallbackLine(state.spirit_finalizedMbti) });
+  }
+  input.value = '';
+  renderLiveTalkMessages();
+}
+
+function closeLiveTalk() {
+  if (liveTalkWs) { try { liveTalkWs.close(); } catch (e) {} }
+  liveTalkWs = null;
+  closeModal('liveTalkModal');
+}
+
+// =========================================================================
+// Settings (설정 / 정보 확인) — 8/6/7/9번 신규 스탯까지 확장
+// =========================================================================
+function openSettings() {
+  const contentDiv = document.getElementById('settingsContent');
+  const user = state.userProfile || {};
+  const ageDays = state.petBirthDate && !state.isDead && state.petStage !== 'egg'
+    ? Math.floor((Date.now() - state.petBirthDate) / DAY_MS) : 0;
+
+  contentDiv.innerHTML = `
+    <h3 style="margin-top:0;">👤 유저 정보 설정</h3>
+    <div style="margin-bottom: 5px;"><b>인증 토큰:</b> ${state.authToken ? state.authToken.substring(0, 15) + '...' : '없음'}</div>
+
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <div style="flex:1;">
+        <label style="display:block; font-size:12px;">생년월일</label>
+        <input type="text" id="editBirthDate" value="${user.birthDate || ''}" style="width:100%; padding:5px;">
+      </div>
+      <div style="flex:1;">
+        <label style="display:block; font-size:12px;">태어난 시간</label>
+        <input type="text" id="editBirthTime" value="${user.birthTime || ''}" style="width:100%; padding:5px;">
+      </div>
+      <div style="flex:1;">
+        <label style="display:block; font-size:12px;">성별</label>
+        <input type="text" id="editGender" value="${user.gender || ''}" style="width:100%; padding:5px;">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <div style="flex:1;">
+        <label style="display:block; font-size:12px;">전화번호</label>
+        <input type="text" id="editPhone" value="${user.phone || ''}" style="width:100%; padding:5px;" placeholder="010-0000-0000">
+      </div>
+      <div style="flex:1;">
+        <label style="display:block; font-size:12px;">주소(지역)</label>
+        <input type="text" id="editRegion" value="${user.region || ''}" style="width:100%; padding:5px;" placeholder="서울시 강남구">
+      </div>
+    </div>
+
+    <hr style="margin: 20px 0;">
+
+    <h3 style="margin-top:0;">🐾 펫 정보 (읽기 전용)</h3>
+    <div style="margin-bottom:10px;">
+      <b>이름:</b> <input type="text" id="editPetName" value="${state.petName}" style="padding:5px; width: 120px;">
+    </div>
+    <div><b>단계:</b> ${state.petStage.toUpperCase()} (나이 ${ageDays}일)</div>
+    <div><b>진화 등급:</b> ${state.physical_evolutionGrade || '아직 없음'} / <b>확정 종:</b> ${state.physical_species || '아직 없음(성체 전환 시 확정)'}</div>
+    <div><b>포만감 (Fullness):</b> ${state.physical_fullness}</div>
+    <div><b>유대감 (Intimacy):</b> ${state.spirit_intimacy}</div>
+    <div><b>청결도 (Cleanliness):</b> ${state.physical_cleanliness}</div>
+    <div><b>체중 (Weight):</b> ${state.physical_weight}</div>
+    <div><b>행복도 (Happiness, EMA):</b> ${state.spirit_happiness}</div>
+    <div><b>응가 개수:</b> ${state.env_poopCount}</div>
+    <div><b>건강 상태:</b> ${state.physical_health === 'sick' ? `아픔 (약 ${state.physical_medicineDoses}/${BALANCE.MEDICINE_DOSES_REQUIRED}회 투여)` : '양호'}</div>
+    <div><b>예방접종 유효:</b> ${state.physical_vaccinatedUntil && Date.now() < state.physical_vaccinatedUntil ? new Date(state.physical_vaccinatedUntil).toLocaleString() + '까지' : '없음'}</div>
+    <div><b>놀이 총량(누적):</b> ${state.spirit_playCount}</div>
+    <div><b>MBTI 점수:</b>
+      E:${state.spirit_mbtiScores.E} I:${state.spirit_mbtiScores.I} /
+      S:${state.spirit_mbtiScores.S} N:${state.spirit_mbtiScores.N} /
+      T:${state.spirit_mbtiScores.T} F:${state.spirit_mbtiScores.F} /
+      J:${state.spirit_mbtiScores.J} P:${state.spirit_mbtiScores.P}
+    </div>
+    <div><b>확정 MBTI:</b> ${state.spirit_finalizedMbti || '아직 없음'}</div>
+    <div><b>진행 중인 펫 퀘스트:</b> ${state.spirit_activeQuest ? (PET_QUESTS.find(q => q.id === state.spirit_activeQuest.questId)?.text || '-') : '없음'}</div>
+    <div><b>사망 여부:</b> ${state.isDead ? '예' : '아니오'}</div>
+
+    <button onclick="saveEditedProfile()" style="background:#2196F3; color:#fff; border:none; padding:10px 15px; border-radius:5px; cursor:pointer; width:100%; font-size:16px; margin-top:20px;">💾 설정 저장</button>
+
+    <hr style="margin: 20px 0;">
+    <button onclick="factoryReset()" style="background:#f44336; color:#fff; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; width:100%;">앱 초기화 (모든 데이터 삭제)</button>
+  `;
+  document.getElementById('settingsModal').classList.remove('hidden');
+}
+
+async function saveEditedProfile() {
+  const bd = document.getElementById('editBirthDate').value.trim();
+  const bt = document.getElementById('editBirthTime').value.trim();
+  const g = document.getElementById('editGender').value.trim();
+  const phone = document.getElementById('editPhone').value.trim();
+  const region = document.getElementById('editRegion').value.trim();
+  const petName = document.getElementById('editPetName').value.trim();
+
+  if(!bd || !bt || !g || !petName) {
+    alert('필수 정보를 입력해주세요.');
+    return;
+  }
+
+  if (!isValidName(petName) && petName !== state.petName) {
+    alert('경고: 이름에 사용할 수 없는 단어가 포함되어 있습니다.');
+    return;
+  }
+
+  setState({
+    userProfile: { ...state.userProfile, birthDate: bd, birthTime: bt, gender: g, phone: phone, region: region },
+    petName: petName
+  });
+
+  if (state.authToken) {
+    try {
+      const year = parseInt(bd.split('-')[0], 10);
+      const currentYear = new Date().getFullYear();
+      const age_group = `${Math.floor((currentYear - year) / 10) * 10}s`;
+
+      await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${state.authToken}` },
+        body: JSON.stringify({ age_group, gender: g })
+      });
+    } catch(e) {
+      console.error(e);
     }
+  }
 
-    function answerDialogue(trait, question, answerText) {
-        mbtiScores[trait]++;
-        dailyDialogueCount++;
-        log(`대화 선택: "${answerText}" → ${trait} 성향 +1 (현재 판정: ${computeMbti()})`);
-        document.getElementById('dialogueQuestion').innerText = "고마워요, 주인님! (다시 '대화하기'를 눌러보세요)";
-        document.getElementById('dialogueChoices').innerHTML = '';
-        updateMbtiUI();
-    }
+  alert('설정이 저장되었습니다!');
+  closeModal('settingsModal');
+  render();
+}
 
-    function pet() {
-        if (daysPassed >= 90) return;
-        petCount++;
-        log(`쓰다듬기 🐾 (누적 ${petCount}회) — 친밀도 소폭 상승 (MBTI 점수에는 영향 없음)`);
-        updateMbtiUI();
+function factoryReset() {
+  if(confirm('정말 모든 데이터를 삭제하고 처음부터 다시 시작하시겠습니까?')) {
+    localStorage.clear();
+    location.reload();
+  }
+}
+
+async function openLeaderboard() {
+  const list = document.getElementById('leaderboardList');
+  list.innerHTML = '<div class="empty-text">불러오는 중...</div>';
+  document.getElementById('leaderboardModal').classList.remove('hidden');
+  try {
+    const res = await fetch('/rankings');
+    const data = await res.json();
+    const rankings = data.rankings || [];
+    if (rankings.length === 0) {
+      list.innerHTML = '<div class="empty-text">아직 랭킹 데이터가 없어요.</div>';
+      return;
     }
+    list.innerHTML = '';
+    rankings.forEach((item, idx) => {
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      div.textContent = `${idx + 1}위. ${item.pet_nickname} (${item.pet_mbti}) - ${item.care_score}점`;
+      list.appendChild(div);
+    });
+  } catch (e) {
+    list.innerHTML = '<div class="empty-text">서버 통신에 실패했습니다.</div>';
+  }
+}
+
+function openMemorial() {
+  const list = document.getElementById('memorialList');
+  list.innerHTML = '';
+  if (state.memorials.length === 0) {
+    list.innerHTML = '<div class="empty-text">아직 기록이 없어요.</div>';
+  } else {
+    state.memorials.forEach((item) => {
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      const line1 = document.createElement('div');
+      line1.textContent = `👻 ${item.name} (${item.mbti}) - ${item.score}점`;
+      const line2 = document.createElement('div');
+      line2.style.cssText = 'font-size:12px;color:gray;';
+      line2.textContent = new Date(item.diedAt).toLocaleDateString();
+      div.appendChild(line1);
+      div.appendChild(line2);
+      list.appendChild(div);
+    });
+  }
+  document.getElementById('memorialModal').classList.remove('hidden');
+}
+
+// =========================================================================
+// Boot
+// =========================================================================
+function afterProfileReady() {
+  syncOfflineTime();
+  const today = new Date().toISOString().split('T')[0];
+  if (!state.dailyFortuneLock || state.dailyFortuneLock.date !== today) {
+    if (state.userProfile) {
+      const calculatedTier = generateTodayBaseTier(state.userProfile);
+      setState({ dailyFortuneLock: { date: today, baseTier: calculatedTier, isRescued: false } });
+    }
+  } else {
+    render();
+  }
+}
+
+if (state.userProfile) {
+  afterProfileReady();
+} else {
+  render();
+}
 </script>
-
 </body>
 </html>

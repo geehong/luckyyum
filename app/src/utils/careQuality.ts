@@ -3,17 +3,18 @@
 // 문제였어서 순수 함수로 바꿨다. 호출 지점은 evaluateEvolution()과 calculateMBTI() 딱 둘뿐이고, 결과를 저장하지 않는다.
 import {
   MEALS_PER_DAY_TARGET,
-  DAILY_MEAL_TOTAL_TARGET,
-  MEAL_AMOUNT_TOLERANCE,
   CLEANLINESS_DIRTY,
   CLEANLINESS_OK,
   WEIGHT_LOW,
   WEIGHT_HIGH,
+  MEAL_SCORE_BEST_DIFF,
+  MEAL_SCORE_OK_DIFF,
 } from '../config/gameBalance';
 
 export interface MealLogEntry {
   time: number;
   amount: number;
+  optimalAmount: number; // 11번: 슬롯별 가챠 추측 미니게임의 숨은 목표치
 }
 
 export interface CleanLogEntry {
@@ -34,18 +35,13 @@ export function computeCareQualityIndex(data: CareQualityWindowData): number {
   const days = Math.max(data.windowDays, 1);
   let score = 0;
 
-  // 밥주기: 하루 평균 급여 횟수/총량이 목표에 가까운지
-  const mealsPerDay = data.mealLog.length / days;
-  const totalAmount = data.mealLog.reduce((sum, m) => sum + m.amount, 0);
-  const dailyAmount = totalAmount / days;
-  const targetLow = DAILY_MEAL_TOTAL_TARGET * (1 - MEAL_AMOUNT_TOLERANCE);
-  const targetHigh = DAILY_MEAL_TOTAL_TARGET * (1 + MEAL_AMOUNT_TOLERANCE);
-  const amountInRange = dailyAmount >= targetLow && dailyAmount <= targetHigh;
-  const countIdeal = Math.abs(mealsPerDay - MEALS_PER_DAY_TARGET) < 0.5;
-  if (amountInRange && countIdeal) {
-    score += 30;
-  } else if (amountInRange) {
-    score += 15;
+  // 11번: 밥주기 — 슬롯마다 "숨은 최적치"를 얼마나 근접하게 추측했는지로 채점 (끼니별 정확도).
+  // 슬롯 자체가 하루 1회씩만 허용되므로(petStore.ts), 하루 총량/횟수를 따로 볼 필요가 없어졌다.
+  for (const meal of data.mealLog) {
+    const diff = Math.abs(meal.amount - meal.optimalAmount);
+    if (diff <= MEAL_SCORE_BEST_DIFF) score += 10;
+    else if (diff <= MEAL_SCORE_OK_DIFF) score += 5;
+    // 많이 벗어나면 가점 없음(페널티는 없음 — 체중 변화로 이미 대가를 치름)
   }
 
   // 놀아주기: 하루 평균 놀이 횟수가 정확히 목표(3)면 우수, 초과 시 소폭, 부족 시 비례

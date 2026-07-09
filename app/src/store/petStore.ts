@@ -9,11 +9,10 @@ import {
 } from '../utils/careQuality';
 import { computeHappinessTarget } from '../utils/happinessLogic';
 import { pickQuest, getQuestSpawnProbability, isQuestExpired, type QuestDef, type QuestResolveAction } from '../utils/questLogic';
+import { getMealSlotAt, hasFedSlotToday, rollOptimalAmount, rollGachaChoices, randomInt } from '../utils/mealSlots';
 import petQuestsData from '../data/petQuests.json';
 import {
-  FEED_FULLNESS_GAIN,
   FEED_INTIMACY_GAIN,
-  FEED_WEIGHT_GAIN,
   PLAY_INTIMACY_GAIN,
   PLAY_FULLNESS_LOSS,
   PLAY_WEIGHT_LOSS,
@@ -21,7 +20,6 @@ import {
   PET_INTIMACY_GAIN,
   CLEAN_INTIMACY_GAIN,
   DIALOGUE_INTIMACY_GAIN,
-  MEAL_AMOUNT_IDEAL,
   DECAY_FULLNESS_PER_HOUR,
   DECAY_INTIMACY_PER_HOUR,
   DECAY_CLEANLINESS_PER_HOUR,
@@ -39,6 +37,14 @@ import {
   VACCINE_PROTECTION_DAYS,
   SICK_DEATH_THRESHOLD_HOURS,
   EVOLUTION_CHECKPOINT_DAYS,
+  HATCH_FULLNESS_GAIN,
+  HATCH_WEIGHT_GAIN,
+  MEAL_SCORE_BEST_DIFF,
+  MEAL_SCORE_OK_DIFF,
+  MEAL_WEIGHT_DELTA_MILD,
+  MEAL_WEIGHT_DELTA_LARGE,
+  DAILY_QUEST_TARGET_MIN,
+  DAILY_QUEST_TARGET_MAX,
 } from '../config/gameBalance';
 
 const storage = createMMKV();
@@ -78,10 +84,22 @@ export type Species = 'fly' | 'dragon' | 'bear';
 export interface MealLogEntry {
   time: number;
   amount: number;
+  optimalAmount: number;
 }
 export interface CleanLogEntry {
   time: number;
   dirtinessBefore: number;
+}
+// 11번: 밥주기 가챠 — 열려있는 동안 유저가 3개 선택지 중 하나를 고르길 기다리는 상태.
+export interface MealGacha {
+  slotId: 'breakfast' | 'lunch' | 'dinner';
+  optimalAmount: number; // 숨겨진 정답, UI엔 노출 안 함
+  choices: number[];
+}
+export interface DailyQuestBudget {
+  date: string;
+  target: number; // 오늘 스폰될 퀘스트 총량(3~5, 하루 1회 굴림)
+  spawnedCount: number;
 }
 
 export interface PetState {
@@ -118,6 +136,8 @@ export interface PetState {
   spirit_mealLog: MealLogEntry[]; // 체크포인트마다 초기화
   spirit_playCountSinceCheckpoint: number; // 체크포인트마다 초기화
   spirit_questResponseLog: number[]; // 체크포인트마다 초기화 (ms)
+  spirit_mealGacha: MealGacha | null; // 11번: 열려있는 밥주기 가챠(응답 대기 중)
+  spirit_dailyQuestBudget: DailyQuestBudget | null; // 11번: 하루 퀘스트 스폰 예산(3~5회)
 
   // ── env_ (환경적) ────────────────────────────────────────────────
   env_poopCount: number;
@@ -136,7 +156,9 @@ export interface PetState {
 
   // ── 액션 ─────────────────────────────────────────────────────────
   setPetName: (name: string) => void;
-  feed: () => void;
+  feed: () => void; // egg 단계 전용(부화). 부화 이후엔 openMealGacha()/chooseMealAmount() 사용.
+  openMealGacha: () => void;
+  chooseMealAmount: (amount: number) => void;
   play: () => void;
   clean: () => void;
   bathe: () => void;
@@ -185,6 +207,8 @@ function freshPetFields() {
     spirit_mealLog: [],
     spirit_playCountSinceCheckpoint: 0,
     spirit_questResponseLog: [],
+    spirit_mealGacha: null,
+    spirit_dailyQuestBudget: null,
 
     env_poopCount: 0,
     env_lastCleanTime: null,
@@ -233,6 +257,15 @@ export function migratePetStoreV1toV2(persistedState: any): Partial<PetState> {
     memorials: old.memorials ?? [],
     dailyFortuneLock: old.dailyFortuneLock ?? null,
   };
+}
+
+// 11번 섹션: play/clean/bathe/pet/vaccinate는 이제 상시 버튼이 아니다 — 지금 이 액션을
+// resolveAction으로 갖는 퀘스트가 떠 있을 때만 통과시킨다. UI에서 버튼을 숨기는 것과 별개로
+// 스토어 레벨에서 차단해야 콘솔 직접 호출 같은 우회로도 스팸이 안 통한다.
+function hasMatchingActiveQuest(state: PetState, action: QuestResolveAction): boolean {
+  if (!state.spirit_activeQuest) return false;
+  const quest = QUESTS.find((q) => q.id === state.spirit_activeQuest!.questId);
+  return !!quest && quest.resolveAction === action;
 }
 
 // 활성 퀘스트가 이 액션으로 해결되는지 확인하고, 해결됐다면 정리 + 유대감 보너스 + 응답시간 로그를 patch로 반환.
@@ -288,18 +321,59 @@ export const usePetStore = create<PetState>()(
       setPetName: (name) => set({ petName: name }),
       setDailyFortuneLock: (lock) => set({ dailyFortuneLock: lock }),
 
+      // 11번: 부화(알→아기) 전용. 부화 이후엔 openMealGacha()/chooseMealAmount()로 넘어간다.
       feed: () => set((state) => {
         if (state.isDead) return {};
         if (!state.petName) return {}; // Guard
-
-        if (state.physical_fullness >= 100 && state.petStage !== 'egg') {
-          return {};
-        }
+        if (state.petStage !== 'egg') return {};
 
         const now = Date.now();
-        const newFullness = Math.min(100, state.physical_fullness + FEED_FULLNESS_GAIN);
+        return {
+          physical_fullness: Math.min(100, state.physical_fullness + HATCH_FULLNESS_GAIN),
+          physical_weight: Math.min(100, state.physical_weight + HATCH_WEIGHT_GAIN),
+          petStage: 'baby' as const,
+          petBirthDate: now,
+          lastCareTime: now,
+          feedCount: state.feedCount + 1,
+        };
+      }),
+
+      // 11번: 밥주기 1단계 — 지금 시간대 슬롯을 확인하고, 아직 그 슬롯에 안 먹였으면 가챠(선택지 3개)를 연다.
+      // 슬롯 자체가 "하루 1번씩만"이라는 자연스러운 상한이라 별도 쿨다운이 필요 없다.
+      openMealGacha: () => set((state) => {
+        if (state.isDead || !state.petName || state.petStage === 'egg') return {};
+        if (state.spirit_mealGacha) return {}; // 이미 열려있음
+
+        const now = Date.now();
+        const slot = getMealSlotAt(now);
+        if (!slot) return {}; // 지금은 식사시간이 아님(23시~05시)
+        if (hasFedSlotToday(state.spirit_mealLog, slot.id, now)) return {}; // 이미 이 끼니 줬음
+
+        return {
+          spirit_mealGacha: {
+            slotId: slot.id,
+            optimalAmount: rollOptimalAmount(),
+            choices: rollGachaChoices(),
+          },
+        };
+      }),
+
+      // 11번: 밥주기 2단계 — 고른 양이 숨은 최적치에 가까울수록 포만감/케어품질 보너스가 크고,
+      // 많이 벗어나면(과다/부족) 체중이 그만큼 움직인다(원조의 "폭식→과체중" 자연 페널티).
+      chooseMealAmount: (amount: number) => set((state) => {
+        if (!state.spirit_mealGacha) return {};
+
+        const { optimalAmount } = state.spirit_mealGacha;
+        const now = Date.now();
+        const diff = Math.abs(amount - optimalAmount);
+
+        const newFullness = Math.min(100, state.physical_fullness + amount);
         const newIntimacy = Math.min(100, state.spirit_intimacy + FEED_INTIMACY_GAIN);
-        const newWeight = Math.min(100, state.physical_weight + FEED_WEIGHT_GAIN);
+
+        let weightDelta = 0;
+        if (diff > MEAL_SCORE_OK_DIFF) weightDelta = amount > optimalAmount ? MEAL_WEIGHT_DELTA_LARGE : -MEAL_WEIGHT_DELTA_LARGE;
+        else if (diff > MEAL_SCORE_BEST_DIFF) weightDelta = amount > optimalAmount ? MEAL_WEIGHT_DELTA_MILD : -MEAL_WEIGHT_DELTA_MILD;
+        const newWeight = Math.max(0, Math.min(100, state.physical_weight + weightDelta));
 
         let newLock = state.dailyFortuneLock;
         if (newLock && !newLock.isRescued && newLock.baseTier < 3) {
@@ -315,7 +389,8 @@ export const usePetStore = create<PetState>()(
           spirit_intimacy: newIntimacy,
           physical_weight: newWeight,
           env_poopCount: newPoopCount,
-          spirit_mealLog: [...state.spirit_mealLog, { time: now, amount: MEAL_AMOUNT_IDEAL }],
+          spirit_mealLog: [...state.spirit_mealLog, { time: now, amount, optimalAmount }],
+          spirit_mealGacha: null,
           lastCareTime: now,
           feedCount: state.feedCount + 1,
           dailyFortuneLock: newLock,
@@ -323,9 +398,11 @@ export const usePetStore = create<PetState>()(
         };
       }),
 
+      // 11번: 상시 버튼 제거 — 매칭되는 펫 퀘스트가 떠 있을 때만 동작(hasMatchingActiveQuest 가드).
       play: () => set((state) => {
         if (state.isDead) return {};
         if (!state.petName) return {}; // Guard
+        if (!hasMatchingActiveQuest(state, 'play')) return {};
         if (state.spirit_intimacy >= 100 || state.physical_fullness <= 10) return {};
 
         const now = Date.now();
@@ -347,6 +424,7 @@ export const usePetStore = create<PetState>()(
       clean: () => set((state) => {
         if (state.isDead) return {};
         if (!state.petName) return {}; // Guard
+        if (!hasMatchingActiveQuest(state, 'clean')) return {};
         if (state.env_poopCount === 0) return {};
 
         const now = Date.now();
@@ -365,6 +443,7 @@ export const usePetStore = create<PetState>()(
       bathe: () => set((state) => {
         if (state.isDead) return {};
         if (!state.petName) return {}; // Guard
+        if (!hasMatchingActiveQuest(state, 'bathe')) return {};
         if (state.physical_cleanliness >= 100) return {};
 
         const now = Date.now();
@@ -378,6 +457,7 @@ export const usePetStore = create<PetState>()(
 
       pet: () => set((state) => {
         if (state.isDead) return {};
+        if (!hasMatchingActiveQuest(state, 'pet')) return {};
         if (state.spirit_intimacy >= 100) return {};
 
         const now = Date.now();
@@ -422,11 +502,15 @@ export const usePetStore = create<PetState>()(
       vaccinate: () => set((state) => {
         if (state.isDead) return {};
         if (!state.petName) return {};
+        if (!hasMatchingActiveQuest(state, 'vaccinate')) return {};
         if (state.physical_health === 'sick') return {};
         const now = Date.now();
         if (state.physical_vaccinatedUntil && now < state.physical_vaccinatedUntil) return {};
 
-        return { physical_vaccinatedUntil: now + VACCINE_PROTECTION_DAYS * 24 * 60 * 60 * 1000 };
+        return {
+          physical_vaccinatedUntil: now + VACCINE_PROTECTION_DAYS * 24 * 60 * 60 * 1000,
+          ...resolveQuestPatch(state, 'vaccinate', state.spirit_intimacy),
+        };
       }),
 
       answerDialogue: (traits: string[]) => set((state) => {
@@ -595,12 +679,19 @@ export const usePetStore = create<PetState>()(
             newMemorials = [...state.memorials, buildMemorial(state)];
           }
 
-          // 9번: 펫 퀘스트 스폰/만료
+          // 11번: 펫 퀘스트 스폰/만료 — 하루 3~5회 예산제. 매 틱 고정 확률로 계속 스폰하던 방식은
+          // "만들어둔 채점 시스템을 무의미하게 만드는 스팸"의 근본 원인이라 하루 총량으로 캡을 씌운다.
+          const today = new Date().toISOString().split('T')[0];
+          let dailyBudget = state.spirit_dailyQuestBudget;
+          if (!dailyBudget || dailyBudget.date !== today) {
+            dailyBudget = { date: today, target: randomInt(DAILY_QUEST_TARGET_MIN, DAILY_QUEST_TARGET_MAX), spawnedCount: 0 };
+          }
+
           let newActiveQuest = state.spirit_activeQuest;
           if (newActiveQuest && isQuestExpired(newActiveQuest.spawnedAt, Date.now())) {
             newActiveQuest = null; // 보상 없이 소멸
           }
-          if (!newActiveQuest && !isDead) {
+          if (!newActiveQuest && !isDead && dailyBudget.spawnedCount < dailyBudget.target) {
             const spawnProbability = getQuestSpawnProbability(state.spirit_finalizedMbti);
             if (Math.random() < spawnProbability) {
               const hoursSinceLastPlay = state.spirit_lastPlayTime
@@ -614,11 +705,14 @@ export const usePetStore = create<PetState>()(
                   cleanliness: newClean,
                   poopCount: state.env_poopCount,
                   hoursSinceLastPlay,
+                  vaccinatedUntil: state.physical_vaccinatedUntil,
+                  now: Date.now(),
                 },
                 state.spirit_finalizedMbti,
               );
               if (quest) {
                 newActiveQuest = { questId: quest.id, spawnedAt: Date.now() };
+                dailyBudget = { ...dailyBudget, spawnedCount: dailyBudget.spawnedCount + 1 };
               }
             }
           }
@@ -631,6 +725,7 @@ export const usePetStore = create<PetState>()(
             physical_health: newHealth,
             physical_sickSince: newSickSince,
             physical_medicineDoses: newDoses,
+            spirit_dailyQuestBudget: dailyBudget,
             physical_firstMedicineDoseTime: newFirstDoseTime,
             spirit_activeQuest: newActiveQuest,
             isDead,

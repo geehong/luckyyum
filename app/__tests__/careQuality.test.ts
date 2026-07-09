@@ -3,24 +3,33 @@ import { computeCareQualityIndex, gradeFromAverageScore, speciesFromGrade, evalu
 describe('computeCareQualityIndex', () => {
   const baseWindow = {
     windowDays: 1,
-    mealLog: [] as { time: number; amount: number }[],
+    mealLog: [] as { time: number; amount: number; optimalAmount: number }[],
     cleanLog: [] as { time: number; dirtinessBefore: number }[],
     playCountInWindow: 0,
     weight: 50,
     questResponseTimesMs: [] as number[],
   };
 
-  it('gives the max meal score for ideal 3-meals/day distribution at the ideal amount', () => {
+  // 11번 섹션: 이제 "하루 총량/횟수"가 아니라 "끼니별 가챠 추측 정확도"로 채점한다.
+  it('gives the best meal score when the chosen amount lands right on the hidden optimal', () => {
     const score = computeCareQualityIndex({
       ...baseWindow,
       mealLog: [
-        { time: 1, amount: 20 },
-        { time: 2, amount: 20 },
-        { time: 3, amount: 20 },
+        { time: 1, amount: 20, optimalAmount: 20 },
+        { time: 2, amount: 25, optimalAmount: 24 },
+        { time: 3, amount: 18, optimalAmount: 20 },
       ],
     });
-    // 30(밥) + play 부족분 비례(0) + weight 정상(+10) = 40
+    // 10*3(밥, 전부 BEST_DIFF 이내) + play 부족분 비례(0) + weight 정상(+10) = 40
     expect(score).toBeGreaterThanOrEqual(40);
+  });
+
+  it('gives a lower meal score the further the guess is from the hidden optimal', () => {
+    const close = computeCareQualityIndex({ ...baseWindow, mealLog: [{ time: 1, amount: 20, optimalAmount: 21 }] });
+    const mid = computeCareQualityIndex({ ...baseWindow, mealLog: [{ time: 1, amount: 20, optimalAmount: 25 }] });
+    const far = computeCareQualityIndex({ ...baseWindow, mealLog: [{ time: 1, amount: 20, optimalAmount: 35 }] });
+    expect(close).toBeGreaterThan(mid);
+    expect(mid).toBeGreaterThan(far);
   });
 
   it('penalizes cleaning when done while barely dirty', () => {

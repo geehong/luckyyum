@@ -15,9 +15,23 @@ import { calculateMBTI } from './src/utils/mbtiCalculator';
 import { calculateFortuneTier, getMockFortuneText, generateTodayBaseTier } from './src/utils/fortuneLogic';
 import { fetchRankings } from './src/utils/apiClient';
 import petQuestsData from './src/data/petQuests.json';
+import { MEAL_SLOTS } from './src/config/gameBalance';
 
 // 1. Run migration before app initializes
 migrateOldStorage();
+
+const GaugeBar = ({ label, value, color }: { label: string; value: number; color: string }) => {
+  const clamped = Math.max(0, Math.min(100, value));
+  return (
+    <View style={styles.gaugeRow}>
+      <Text style={styles.gaugeLabel}>{label}</Text>
+      <View style={styles.gaugeTrack}>
+        <View style={[styles.gaugeFill, { width: `${clamped}%`, backgroundColor: color }]} />
+      </View>
+      <Text style={styles.gaugeValue}>{value}/100</Text>
+    </View>
+  );
+};
 
 const App = () => {
   const { userProfile, setUserProfile, isOverlayActive, setOverlayActive } = useUserStore();
@@ -25,15 +39,39 @@ const App = () => {
     petName, setPetName, setDailyFortuneLock,
     physical_fullness, spirit_intimacy, physical_cleanliness, physical_weight,
     physical_health, physical_medicineDoses, spirit_happiness, spirit_activeQuest,
-    env_poopCount,
-    isDead, petStage, feed, play, clean, bathe, pet, giveMedicine, vaccinate,
+    env_poopCount, spirit_mealGacha,
+    isDead, petStage, feed, openMealGacha, chooseMealAmount, play, clean, bathe, pet, giveMedicine, vaccinate,
     dailyFortuneLock,
     hatchEgg, gachaEgg, memorials, syncToServer
   } = usePetStore();
 
-  const activeQuestText = spirit_activeQuest
-    ? petQuestsData.find((q) => q.id === spirit_activeQuest.questId)?.text ?? null
+  const activeQuest = spirit_activeQuest
+    ? petQuestsData.find((q) => q.id === spirit_activeQuest.questId) ?? null
     : null;
+
+  // 11번: 청소/목욕/예방접종/놀아주기/쓰다듬기는 상시 버튼이 아니라 이 퀘스트 배너를 탭해서 해결한다.
+  const questActionMap: Record<string, () => void> = {
+    feed: openMealGacha, play, pet, bathe, clean, vaccinate,
+  };
+  const handleResolveQuest = () => {
+    if (!activeQuest) return;
+    questActionMap[activeQuest.resolveAction]?.();
+  };
+
+  // 11번: 밥주기는 시간대 슬롯(아침/점심/저녁) 안에서만, 끼니당 1번만 가능 — 별도 쿨다운 없이 슬롯 자체가 상한.
+  const handleFeedPress = () => {
+    if (petStage === 'egg') {
+      feed();
+      return;
+    }
+    openMealGacha();
+    if (!usePetStore.getState().spirit_mealGacha) {
+      Alert.alert(
+        '지금은 밥 줄 시간이 아니에요',
+        '아침(05~11시) · 점심(11~17시) · 저녁(17~23시)에 다시 시도해주세요. 이미 이번 끼니를 줬을 수도 있어요.',
+      );
+    }
+  };
 
   const [isLeaderboardVisible, setLeaderboardVisible] = useState(false);
   const [isMemorialVisible, setMemorialVisible] = useState(false);
@@ -241,18 +279,19 @@ const App = () => {
 
       <PetRenderer />
 
-      {activeQuestText && (
-        <View style={styles.questBanner}>
-          <Text style={styles.questText}>💬 {activeQuestText}</Text>
-        </View>
+      {activeQuest && (
+        <TouchableOpacity style={styles.questBanner} onPress={handleResolveQuest}>
+          <Text style={styles.questText}>💬 {activeQuest.text}</Text>
+          <Text style={styles.questHint}>탭해서 해결하기 →</Text>
+        </TouchableOpacity>
       )}
 
       <View style={styles.statsCard}>
-        <Text style={styles.statText}>🍖 Fullness: {physical_fullness}/100</Text>
-        <Text style={styles.statText}>💖 Intimacy: {spirit_intimacy}/100</Text>
-        <Text style={styles.statText}>✨ Cleanliness: {physical_cleanliness}/100</Text>
-        <Text style={styles.statText}>⚖️ Weight: {physical_weight}/100</Text>
-        <Text style={styles.statText}>😊 Happiness: {spirit_happiness}/100</Text>
+        <GaugeBar label="🍖 Fullness" value={physical_fullness} color="#FF7043" />
+        <GaugeBar label="💖 Intimacy" value={spirit_intimacy} color="#EC407A" />
+        <GaugeBar label="✨ Cleanliness" value={physical_cleanliness} color="#42A5F5" />
+        <GaugeBar label="⚖️ Weight" value={physical_weight} color="#8D6E63" />
+        <GaugeBar label="😊 Happiness" value={spirit_happiness} color="#FFCA28" />
         {env_poopCount > 0 && <Text style={styles.statText}>💩 응가: {env_poopCount}개</Text>}
         <Text style={styles.statText}>{physical_health === 'sick' ? '🤒 건강: 아픔' : '💪 건강: 양호'}</Text>
         <Text style={styles.mbtiText}>🧠 MBTI: {currentMBTI}</Text>
@@ -270,39 +309,22 @@ const App = () => {
               <Button title="✨ 새 알 뽑기 (가챠) ✨" onPress={gachaEgg} color="#FFD700" />
             </View>
           )}
+          {/* 11번: 청소/목욕/예방접종/놀아주기/쓰다듬기는 상시 버튼이 아니라 위 퀘스트 배너로만 해결한다.
+              밥주기만 상시 버튼으로 남지만, 시간대 슬롯 밖이거나 이미 그 끼니를 줬으면 가챠가 열리지 않는다. */}
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionButton} onPress={feed}>
+            <TouchableOpacity style={styles.actionButton} onPress={handleFeedPress}>
               <Text style={styles.actionText}>{petStage === 'egg' ? '부화시키기 🥚' : '밥주기 🍚'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={play}>
-              <Text style={styles.actionText}>놀아주기 ⚽</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={clean}>
-              <Text style={styles.actionText}>청소하기 🧹</Text>
-            </TouchableOpacity>
-          </View>
-          {petStage !== 'egg' && (
-            <View style={styles.actionRow}>
+            {petStage !== 'egg' && (
               <TouchableOpacity style={styles.actionButton} onPress={openTalkMenu}>
                 <Text style={styles.actionText}>대화하기 💬</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={pet}>
-                <Text style={styles.actionText}>쓰다듬기 🤗</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={bathe}>
-                <Text style={styles.actionText}>목욕시키기 🛁</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {petStage !== 'egg' && (
+            )}
+          </View>
+          {petStage !== 'egg' && physical_health === 'sick' && (
             <View style={styles.actionRow}>
-              {physical_health === 'sick' && (
-                <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#E53935' }]} onPress={giveMedicine}>
-                  <Text style={styles.actionText}>약주기 💊 ({physical_medicineDoses}/2)</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#00897B' }]} onPress={vaccinate}>
-                <Text style={styles.actionText}>예방접종 💉</Text>
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#E53935' }]} onPress={giveMedicine}>
+                <Text style={styles.actionText}>약주기 💊 ({physical_medicineDoses}/2)</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -310,6 +332,24 @@ const App = () => {
       ) : (
         <Button title="새 펫 뽑기 (환생)" onPress={hatchEgg} color="#ff5c5c" />
       )}
+
+      <Modal visible={!!spirit_mealGacha} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.renameCard}>
+            <Text style={styles.title}>🍚 얼마나 줄까요?</Text>
+            <Text style={styles.gachaSubtitle}>
+              {spirit_mealGacha && MEAL_SLOTS.find((s) => s.id === spirit_mealGacha.slotId)?.label} 식사량을 골라주세요
+            </Text>
+            <View style={styles.gachaChoiceRow}>
+              {spirit_mealGacha?.choices.map((amount, idx) => (
+                <TouchableOpacity key={idx} style={styles.gachaChoiceButton} onPress={() => chooseMealAmount(amount)}>
+                  <Text style={styles.gachaChoiceText}>{amount}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <View style={{ marginVertical: 20 }}>
         <Button title="[Dev] 6시간 뒤로 감기 (Time Travel)" onPress={() => timeTravelForward(6)} />
@@ -420,6 +460,12 @@ const styles = StyleSheet.create({
     color: '#E65100',
     fontWeight: 'bold',
   },
+  questHint: {
+    fontSize: 12,
+    color: '#FB8C00',
+    marginTop: 4,
+    textAlign: 'right',
+  },
   headerButtons: {
     flexDirection: 'row',
     gap: 10,
@@ -433,6 +479,53 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
+  },
+  gaugeRow: {
+    marginBottom: 10,
+  },
+  gaugeLabel: {
+    fontSize: 13,
+    color: '#444',
+    fontWeight: 'bold',
+    marginBottom: 3,
+  },
+  gaugeTrack: {
+    height: 10,
+    backgroundColor: '#eee',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  gaugeFill: {
+    height: '100%',
+    borderRadius: 5,
+  },
+  gaugeValue: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 2,
+    textAlign: 'right',
+  },
+  gachaSubtitle: {
+    textAlign: 'center',
+    marginBottom: 15,
+    color: '#666',
+  },
+  gachaChoiceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  gachaChoiceButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#4CAF50',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gachaChoiceText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 20,
   },
   statText: {
     fontSize: 16,

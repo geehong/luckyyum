@@ -41,9 +41,9 @@ describe('calculateMBTI', () => {
       feedCount: 1,
       physical_weight: 50, // 정상범위 가점 + 이상적인 급여 분배 가점 -> 평균 점수 > 25 -> J
       spirit_mealLog: [
-        { time: 1, amount: 20 },
-        { time: 2, amount: 20 },
-        { time: 3, amount: 20 },
+        { time: 1, amount: 20, optimalAmount: 20 },
+        { time: 2, amount: 20, optimalAmount: 20 },
+        { time: 3, amount: 20, optimalAmount: 20 },
       ],
     });
     const bad = makeState({

@@ -48,5 +48,11 @@
     "trigger": "poop_high",
     "text": "여기 좀 지저분해졌어요... 청소해 주실래요? 🧹",
     "resolveAction": "clean"
+  },
+  {
+    "id": "quest-vaccine-01",
+    "trigger": "vaccine_due",
+    "text": "저 예방접종 맞을 때 된 것 같아요! 같이 병원 가요 💉",
+    "resolveAction": "vaccinate"
   }
 ]
