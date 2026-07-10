@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AppState, SafeAreaView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
+import { AppState, SafeAreaView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput, ScrollView } from 'react-native';
 import { useUserStore } from './src/store/userStore';
 import { usePetStore } from './src/store/petStore';
 import { useActivityStore } from './src/store/activityStore';
@@ -267,6 +267,7 @@ const App = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>LuckyYum (In-App)</Text>
         <View style={styles.headerButtons}>
@@ -362,6 +363,7 @@ const App = () => {
           onValueChange={toggleOverlay}
         />
       </View>
+      </ScrollView>
 
       <Modal visible={isLeaderboardVisible} animationType="slide" onRequestClose={() => setLeaderboardVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>
@@ -432,8 +434,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5FCFF',
+  },
+  scrollContainer: {
     padding: 20,
-    justifyContent: 'center',
+    flexGrow: 1,
   },
   title: {
     fontSize: 24,
