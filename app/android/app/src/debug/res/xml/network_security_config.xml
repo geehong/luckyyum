@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  디버그 빌드 전용 오버라이드. main의 network_security_config.xml은 release용으로
+  luckyyum.firemarkets.net만 cleartext 예외를 허용해서, 로컬 Metro(10.0.2.2:8081) 접속이
+  막혀 있었다. 디버그 소스셋 리소스가 main보다 우선 병합되므로 release 설정은 그대로 둔다.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">10.0.3.2</domain>
+        <domain includeSubdomains="true">luckyyum.firemarkets.net</domain>
+    </domain-config>
+</network-security-config>
