@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AppState, SafeAreaView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
+import { AppState, SafeAreaView, ScrollView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
 import { useUserStore } from './src/store/userStore';
 import { usePetStore } from './src/store/petStore';
 import { useActivityStore } from './src/store/activityStore';
@@ -24,11 +24,13 @@ const GaugeBar = ({ label, value, color }: { label: string; value: number; color
   const clamped = Math.max(0, Math.min(100, value));
   return (
     <View style={styles.gaugeRow}>
-      <Text style={styles.gaugeLabel}>{label}</Text>
+      <View style={styles.gaugeHeader}>
+        <Text style={styles.gaugeLabel}>{label}</Text>
+        <Text style={styles.gaugeValue}>{value}/100</Text>
+      </View>
       <View style={styles.gaugeTrack}>
         <View style={[styles.gaugeFill, { width: `${clamped}%`, backgroundColor: color }]} />
       </View>
-      <Text style={styles.gaugeValue}>{value}/100</Text>
     </View>
   );
 };
@@ -266,7 +268,8 @@ const App = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.screenContainer}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>LuckyYum (In-App)</Text>
         <View style={styles.headerButtons}>
@@ -362,6 +365,7 @@ const App = () => {
           onValueChange={toggleOverlay}
         />
       </View>
+      </ScrollView>
 
       <Modal visible={isLeaderboardVisible} animationType="slide" onRequestClose={() => setLeaderboardVisible(false)}>
         <SafeAreaView style={styles.modalContainer}>
@@ -435,6 +439,14 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'center',
   },
+  screenContainer: {
+    flex: 1,
+    backgroundColor: '#F5FCFF',
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -472,38 +484,41 @@ const styles = StyleSheet.create({
   },
   statsCard: {
     backgroundColor: '#fff',
-    padding: 15,
+    padding: 12,
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: 15,
     elevation: 2,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
   },
   gaugeRow: {
-    marginBottom: 10,
+    marginBottom: 6,
+  },
+  gaugeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 2,
   },
   gaugeLabel: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#444',
     fontWeight: 'bold',
-    marginBottom: 3,
   },
   gaugeTrack: {
-    height: 10,
+    height: 7,
     backgroundColor: '#eee',
-    borderRadius: 5,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   gaugeFill: {
     height: '100%',
-    borderRadius: 5,
+    borderRadius: 4,
   },
   gaugeValue: {
-    fontSize: 11,
+    fontSize: 10,
     color: '#888',
-    marginTop: 2,
-    textAlign: 'right',
   },
   gachaSubtitle: {
     textAlign: 'center',
@@ -528,8 +543,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   statText: {
-    fontSize: 16,
-    marginBottom: 5,
+    fontSize: 13,
+    marginTop: 4,
     color: '#444',
     fontWeight: 'bold',
   },
@@ -552,16 +567,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   mbtiText: {
-    fontSize: 16,
-    marginTop: 10,
+    fontSize: 13,
+    marginTop: 4,
     color: '#8A2BE2',
     fontWeight: '900',
   },
   fortuneCard: {
     backgroundColor: '#FFFACD',
-    padding: 15,
+    padding: 12,
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: 15,
     borderWidth: 1,
     borderColor: '#FFD700',
   },
