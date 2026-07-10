@@ -418,36 +418,46 @@ class OverlayService : Service() {
                         val petName = state.optString("petName", "Unknown")
                         val petTier = state.optInt("petTier", 0)
                         val petStage = state.optString("petStage", "egg")
+                        val isDead = state.optBoolean("isDead", false)
                         val lockedSpecies: String? = if (state.has("physical_species") && !state.isNull("physical_species")) {
                             state.optString("physical_species")
                         } else null
 
                         val tvName = floatingView.findViewById<TextView>(R.id.tv_pet_name)
-                        tvName.text = "🐾 $petName (Tier: $petTier)"
-
-                        // 11번 섹션: spirit_mealLog의 마지막 급여 시각으로 "먹는거" 상태를 판정한다.
-                        val mealLog = state.optJSONArray("spirit_mealLog")
-                        val lastMealTime = if (mealLog != null && mealLog.length() > 0) {
-                            val t = mealLog.getJSONObject(mealLog.length() - 1).optLong("time", -1L)
-                            if (t > 0) t else null
-                        } else null
-
-                        val species = resolveSpecies(petName, lockedSpecies)
-                        val visualState = computeVisualState(lastMealTime)
-                        val resName = animResourceName(species, petStage, visualState)
-
                         val ivAnim = floatingView.findViewById<android.widget.ImageView>(R.id.iv_pet_anim)
-                        val currentTag = ivAnim.tag as? String
+                        val tvGhost = floatingView.findViewById<TextView>(R.id.tv_pet_ghost)
 
-                        if (currentTag != resName) {
-                            val resId = resources.getIdentifier(resName, "drawable", packageName)
-                            if (resId != 0) {
-                                ivAnim.setBackgroundResource(resId)
-                                val animDrawable = ivAnim.background as android.graphics.drawable.AnimationDrawable
-                                animDrawable.start()
-                                ivAnim.tag = resName
-                            } else {
-                                Log.w(TAG, "updateRunnable — missing drawable resource: $resName")
+                        if (isDead) {
+                            tvName.text = "👻 $petName"
+                            ivAnim.visibility = View.GONE
+                            tvGhost.visibility = View.VISIBLE
+                        } else {
+                            tvName.text = "🐾 $petName (Tier: $petTier)"
+                            ivAnim.visibility = View.VISIBLE
+                            tvGhost.visibility = View.GONE
+
+                            // 11번 섹션: spirit_mealLog의 마지막 급여 시각으로 "먹는거" 상태를 판정한다.
+                            val mealLog = state.optJSONArray("spirit_mealLog")
+                            val lastMealTime = if (mealLog != null && mealLog.length() > 0) {
+                                val t = mealLog.getJSONObject(mealLog.length() - 1).optLong("time", -1L)
+                                if (t > 0) t else null
+                            } else null
+
+                            val species = resolveSpecies(petName, lockedSpecies)
+                            val visualState = computeVisualState(lastMealTime)
+                            val resName = animResourceName(species, petStage, visualState)
+
+                            val currentTag = ivAnim.tag as? String
+                            if (currentTag != resName) {
+                                val resId = resources.getIdentifier(resName, "drawable", packageName)
+                                if (resId != 0) {
+                                    ivAnim.setBackgroundResource(resId)
+                                    val animDrawable = ivAnim.background as android.graphics.drawable.AnimationDrawable
+                                    animDrawable.start()
+                                    ivAnim.tag = resName
+                                } else {
+                                    Log.w(TAG, "updateRunnable — missing drawable resource: $resName")
+                                }
                             }
                         }
                     }

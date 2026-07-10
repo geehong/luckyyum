@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { AppState, SafeAreaView, ScrollView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
+import { AppState, ScrollView, StyleSheet, Text, View, Switch, Button, Alert, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUserStore } from './src/store/userStore';
 import { usePetStore } from './src/store/petStore';
 import { useActivityStore } from './src/store/activityStore';
@@ -15,7 +16,7 @@ import { calculateMBTI } from './src/utils/mbtiCalculator';
 import { calculateFortuneTier, getMockFortuneText, generateTodayBaseTier } from './src/utils/fortuneLogic';
 import { fetchRankings } from './src/utils/apiClient';
 import petQuestsData from './src/data/petQuests.json';
-import { MEAL_SLOTS } from './src/config/gameBalance';
+import { MEAL_SLOTS, MEDICINE_DOSES_REQUIRED } from './src/config/gameBalance';
 
 // 1. Run migration before app initializes
 migrateOldStorage();
@@ -36,15 +37,17 @@ const GaugeBar = ({ label, value, color }: { label: string; value: number; color
 };
 
 const App = () => {
-  const { userProfile, setUserProfile, isOverlayActive, setOverlayActive } = useUserStore();
+  const { userProfile, setUserProfile, authToken, isOverlayActive, setOverlayActive } = useUserStore();
   const {
     petName, setPetName, setDailyFortuneLock,
     physical_fullness, spirit_intimacy, physical_cleanliness, physical_weight,
     physical_health, physical_medicineDoses, spirit_happiness, spirit_activeQuest,
-    env_poopCount, spirit_mealGacha,
+    env_poopCount, spirit_mealGacha, petBirthDate,
+    physical_evolutionGrade, physical_species, physical_vaccinatedUntil,
+    spirit_playCount, spirit_mbtiScores, spirit_finalizedMbti,
     isDead, petStage, feed, openMealGacha, chooseMealAmount, play, clean, bathe, pet, giveMedicine, vaccinate,
     dailyFortuneLock,
-    hatchEgg, gachaEgg, memorials, syncToServer
+    gachaEgg, memorials, syncToServer
   } = usePetStore();
 
   const activeQuest = spirit_activeQuest
@@ -84,6 +87,13 @@ const App = () => {
   const [isTalkMenuVisible, setTalkMenuVisible] = useState(false);
   const [isRenameVisible, setRenameVisible] = useState(false);
   const [renameInput, setRenameInput] = useState('');
+  const [isSettingsVisible, setSettingsVisible] = useState(false);
+  const [editBirthDate, setEditBirthDate] = useState('');
+  const [editBirthTime, setEditBirthTime] = useState('');
+  const [editGender, setEditGender] = useState<'남' | '여'>('남');
+  const [editPhone, setEditPhone] = useState('');
+  const [editRegion, setEditRegion] = useState('');
+  const [editSettingsPetName, setEditSettingsPetName] = useState('');
   const [activeDialogueScreen, setActiveDialogueScreen] = useState<'personality' | 'checkin' | 'live' | null>(null);
 
   // Setup Screen state
@@ -172,6 +182,53 @@ const App = () => {
   const changePetName = () => {
     setRenameInput(petName);
     setRenameVisible(true);
+  };
+
+  const openSettings = () => {
+    setEditBirthDate(userProfile?.birthDate ?? '');
+    setEditBirthTime(userProfile?.birthTime ?? '');
+    setEditGender(userProfile?.gender ?? '남');
+    setEditPhone(userProfile?.phone ?? '');
+    setEditRegion(userProfile?.region ?? '');
+    setEditSettingsPetName(petName);
+    setSettingsVisible(true);
+  };
+
+  const handleSaveSettings = async () => {
+    if (!editBirthDate || !editBirthTime || !editSettingsPetName) {
+      Alert.alert('알림', '필수 정보를 입력해주세요.');
+      return;
+    }
+    const { isValidName } = require('./src/utils/nameFilter');
+    if (!isValidName(editSettingsPetName)) {
+      Alert.alert('경고', '이름에 사용할 수 없는 단어가 포함되어 있습니다.');
+      return;
+    }
+
+    setUserProfile({
+      ...userProfile,
+      birthDate: editBirthDate,
+      birthTime: editBirthTime,
+      gender: editGender,
+      phone: editPhone,
+      region: editRegion,
+    });
+    setPetName(editSettingsPetName.trim());
+
+    if (authToken) {
+      try {
+        const { updateProfile } = require('./src/utils/apiClient');
+        const year = parseInt(editBirthDate.split('-')[0], 10);
+        const currentYear = new Date().getFullYear();
+        const age_group = `${Math.floor((currentYear - year) / 10) * 10}s`;
+        await updateProfile(authToken, { age_group, gender: editGender });
+      } catch (e) {
+        console.error('[App] handleSaveSettings error:', e);
+      }
+    }
+
+    Alert.alert('알림', '설정이 저장되었습니다!');
+    setSettingsVisible(false);
   };
 
   const handleSavePetName = () => {
@@ -275,8 +332,8 @@ const App = () => {
         <View style={styles.headerButtons}>
           <Button title="✏️" onPress={changePetName} />
           <Button title="🏆" onPress={openLeaderboard} />
-
           <Button title="📖" onPress={() => setMemorialVisible(true)} />
+          <Button title="⚙️" onPress={openSettings} />
         </View>
       </View>
 
@@ -333,7 +390,7 @@ const App = () => {
           )}
         </View>
       ) : (
-        <Button title="새 펫 뽑기 (환생)" onPress={hatchEgg} color="#ff5c5c" />
+        <Button title="새 펫 뽑기 (환생)" onPress={gachaEgg} color="#ff5c5c" />
       )}
 
       <Modal visible={!!spirit_mealGacha} transparent animationType="fade">
@@ -416,6 +473,63 @@ const App = () => {
             </View>
           </View>
         </View>
+      </Modal>
+
+      <Modal visible={isSettingsVisible} animationType="slide" onRequestClose={() => setSettingsVisible(false)}>
+        <SafeAreaView style={styles.modalContainer}>
+          <ScrollView contentContainerStyle={{ padding: 20 }}>
+            <Text style={styles.title}>설정 / 정보 확인</Text>
+
+            <Text style={styles.settingsSectionTitle}>👤 유저 정보 설정</Text>
+            <Text style={styles.label}>생년월일</Text>
+            <TextInput style={styles.input} value={editBirthDate} onChangeText={setEditBirthDate} placeholder="1990-01-01" />
+            <Text style={styles.label}>태어난 시간</Text>
+            <TextInput style={styles.input} value={editBirthTime} onChangeText={setEditBirthTime} placeholder="12:00" />
+            <Text style={styles.label}>성별</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 }}>
+              <Button title="남성" color={editGender === '남' ? '#4CAF50' : '#ccc'} onPress={() => setEditGender('남')} />
+              <Button title="여성" color={editGender === '여' ? '#4CAF50' : '#ccc'} onPress={() => setEditGender('여')} />
+            </View>
+            <Text style={styles.label}>전화번호</Text>
+            <TextInput style={styles.input} value={editPhone} onChangeText={setEditPhone} placeholder="010-0000-0000" />
+            <Text style={styles.label}>주소(지역)</Text>
+            <TextInput style={styles.input} value={editRegion} onChangeText={setEditRegion} placeholder="서울시 강남구" />
+            <Text style={styles.label}>이름</Text>
+            <TextInput style={styles.input} value={editSettingsPetName} onChangeText={setEditSettingsPetName} />
+
+            <View style={{ height: 1, backgroundColor: '#ddd', marginVertical: 20 }} />
+
+            <Text style={styles.settingsSectionTitle}>🐾 펫 정보 (읽기 전용)</Text>
+            <Text style={styles.settingsInfoRow}>
+              단계: {petStage.toUpperCase()} (나이 {petBirthDate && !isDead && petStage !== 'egg' ? Math.floor((Date.now() - petBirthDate) / 86400000) : 0}일)
+            </Text>
+            <Text style={styles.settingsInfoRow}>진화 등급: {physical_evolutionGrade || '아직 없음'} / 확정 종: {physical_species || '아직 없음(성체 전환 시 확정)'}</Text>
+            <Text style={styles.settingsInfoRow}>포만감 (Fullness): {physical_fullness}</Text>
+            <Text style={styles.settingsInfoRow}>유대감 (Intimacy): {spirit_intimacy}</Text>
+            <Text style={styles.settingsInfoRow}>청결도 (Cleanliness): {physical_cleanliness}</Text>
+            <Text style={styles.settingsInfoRow}>체중 (Weight): {physical_weight}</Text>
+            <Text style={styles.settingsInfoRow}>행복도 (Happiness, EMA): {spirit_happiness}</Text>
+            <Text style={styles.settingsInfoRow}>응가 개수: {env_poopCount}</Text>
+            <Text style={styles.settingsInfoRow}>
+              건강 상태: {physical_health === 'sick' ? `아픔 (약 ${physical_medicineDoses}/${MEDICINE_DOSES_REQUIRED}회 투여)` : '양호'}
+            </Text>
+            <Text style={styles.settingsInfoRow}>
+              예방접종 유효: {physical_vaccinatedUntil && Date.now() < physical_vaccinatedUntil ? new Date(physical_vaccinatedUntil).toLocaleString() + '까지' : '없음'}
+            </Text>
+            <Text style={styles.settingsInfoRow}>놀이 총량(누적): {spirit_playCount}</Text>
+            <Text style={styles.settingsInfoRow}>
+              MBTI 점수: E:{spirit_mbtiScores.E} I:{spirit_mbtiScores.I} / S:{spirit_mbtiScores.S} N:{spirit_mbtiScores.N} / T:{spirit_mbtiScores.T} F:{spirit_mbtiScores.F} / J:{spirit_mbtiScores.J} P:{spirit_mbtiScores.P}
+            </Text>
+            <Text style={styles.settingsInfoRow}>확정 MBTI: {spirit_finalizedMbti || '아직 없음'}</Text>
+            <Text style={styles.settingsInfoRow}>진행 중인 펫 퀘스트: {activeQuest ? activeQuest.text : '없음'}</Text>
+            <Text style={styles.settingsInfoRow}>사망 여부: {isDead ? '예' : '아니오'}</Text>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 }}>
+              <Button title="닫기" color="#888" onPress={() => setSettingsVisible(false)} />
+              <Button title="설정 저장" onPress={handleSaveSettings} />
+            </View>
+          </ScrollView>
+        </SafeAreaView>
       </Modal>
 
       <TalkMenuScreen
@@ -641,7 +755,17 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 20,
     fontSize: 16,
-  }
+  },
+  settingsSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  settingsInfoRow: {
+    fontSize: 14,
+    color: '#444',
+    marginBottom: 8,
+  },
 });
 
 export default App;

@@ -15,6 +15,15 @@
         android:scaleType="fitCenter" />
 
     <TextView
+        android:id="@+id/tv_pet_ghost"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:gravity="center"
+        android:text="👻"
+        android:textSize="64sp"
+        android:visibility="gone" />
+
+    <TextView
         android:id="@+id/tv_pet_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
