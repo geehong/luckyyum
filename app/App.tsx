@@ -11,6 +11,7 @@ import PetDialogue from './src/components/PetDialogue';
 import CheckInScreen from './src/components/CheckInScreen';
 import TalkMenuScreen from './src/components/TalkMenuScreen';
 import LiveTalkScreen from './src/components/LiveTalkScreen';
+import StatusScreen from './src/components/StatusScreen';
 import { ActionButton } from './src/components/ActionButton';
 import HeartFullSvg from './src/assets/svg/heart_full.svg';
 import HeartHalfSvg from './src/assets/svg/heart_half.svg';
@@ -35,21 +36,6 @@ import { MEAL_SLOTS, MEDICINE_DOSES_REQUIRED } from './src/config/gameBalance';
 
 // 1. Run migration before app initializes
 migrateOldStorage();
-
-const GaugeBar = ({ label, value, color }: { label: string; value: number; color: string }) => {
-  const clamped = Math.max(0, Math.min(100, value));
-  return (
-    <View style={styles.gaugeRow}>
-      <View style={styles.gaugeHeader}>
-        <Text style={styles.gaugeLabel}>{label}</Text>
-        <Text style={styles.gaugeValue}>{value}/100</Text>
-      </View>
-      <View style={styles.gaugeTrack}>
-        <View style={[styles.gaugeFill, { width: `${clamped}%`, backgroundColor: color }]} />
-      </View>
-    </View>
-  );
-};
 
 const App = () => {
   const { userProfile, setUserProfile, authToken, isOverlayActive, setOverlayActive } = useUserStore();
@@ -441,30 +427,12 @@ const App = () => {
       )}
 
       {/* 상세 스탯 모달 */}
-      <Modal visible={isStatsModalVisible} animationType="fade" transparent onRequestClose={() => setStatsModalVisible(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setStatsModalVisible(false)}>
-          <View style={styles.statsCardPopup} onStartShouldSetResponder={() => true}>
-            <Text style={[styles.title, { marginBottom: 15 }]}>📊 상세 상태</Text>
-            <GaugeBar label="🍖 포만감" value={physical_fullness} color="#FF7043" />
-            <GaugeBar label="💖 친밀도" value={spirit_intimacy} color="#EC407A" />
-            <GaugeBar label="✨ 청결도" value={physical_cleanliness} color="#42A5F5" />
-            <GaugeBar label="⚖️ 몸무게" value={physical_weight} color="#8D6E63" />
-            <GaugeBar label="😊 행복도" value={spirit_happiness} color="#FFCA28" />
-            {env_poopCount > 0 && <Text style={styles.statText}>💩 응가: {env_poopCount}개</Text>}
-            <Text style={styles.statText}>{physical_health === 'sick' ? '🤒 건강: 아픔' : '💪 건강: 양호'}</Text>
-            <Text style={styles.mbtiText}>🧠 MBTI: {currentMBTI}</Text>
-            
-            <View style={[styles.fortuneCard, { marginTop: 15 }]}>
-              <Text style={styles.fortuneTitle}>오늘의 운세 (등급: {finalFortuneTier})</Text>
-              <Text style={styles.fortuneDesc}>{fortuneText}</Text>
-            </View>
-
-            <View style={{ marginTop: 20 }}>
-              <Button title="닫기" onPress={() => setStatsModalVisible(false)} />
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      <StatusScreen 
+        visible={isStatsModalVisible} 
+        onClose={() => setStatsModalVisible(false)} 
+        userProfile={userProfile} 
+        dailyFortuneLock={dailyFortuneLock} 
+      />
 
       <Modal visible={!!spirit_mealGacha} transparent animationType="fade">
         <View style={styles.modalOverlay}>

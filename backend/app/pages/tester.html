@@ -202,6 +202,30 @@
     border-radius: 50%; animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .gauge-track-inner-shadow {
+    height: 25px;
+    background-color: #EEECFF;
+    border-radius: 17.5px;
+    border: 1px solid;
+    border-top-color: #d6d3f0;
+    border-left-color: #d6d3f0;
+    border-bottom-color: #ffffff;
+    border-right-color: #ffffff;
+    overflow: hidden;
+    position: relative;
+  }
+  .gauge-fill-svg {
+    height: 100%;
+    overflow: hidden;
+  }
+  .gauge-fill-svg img {
+    width: 263px;
+    height: 25px;
+    max-width: none;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
 </style>
 </head>
 <body>
@@ -275,45 +299,7 @@
       </div>
     </div>
 
-    <div class="stats-card hidden" id="statsCard">
-      <div class="gauge-row">
-        <div class="gauge-label">🍖 Fullness</div>
-        <div class="gauge-track"><div class="gauge-fill" id="gaugeFullness" style="background:#FF7043;width:50%"></div></div>
-        <div class="gauge-value"><span id="statFullness">50</span>/100</div>
-      </div>
-      <div class="gauge-row">
-        <div class="gauge-label">💖 Intimacy</div>
-        <div class="gauge-track"><div class="gauge-fill" id="gaugeIntimacy" style="background:#EC407A;width:50%"></div></div>
-        <div class="gauge-value"><span id="statIntimacy">50</span>/100</div>
-      </div>
-      <div class="gauge-row">
-        <div class="gauge-label">✨ Cleanliness</div>
-        <div class="gauge-track"><div class="gauge-fill" id="gaugeCleanliness" style="background:#42A5F5;width:100%"></div></div>
-        <div class="gauge-value"><span id="statCleanliness">100</span>/100</div>
-      </div>
-      <div class="gauge-row">
-        <div class="gauge-label">⚖️ Weight</div>
-        <div class="gauge-track"><div class="gauge-fill" id="gaugeWeight" style="background:#8D6E63;width:50%"></div></div>
-        <div class="gauge-value"><span id="statWeight">50</span>/100</div>
-      </div>
-      <div class="gauge-row">
-        <div class="gauge-label">😊 Happiness</div>
-        <div class="gauge-track"><div class="gauge-fill" id="gaugeHappiness" style="background:#FFCA28;width:50%"></div></div>
-        <div class="gauge-value"><span id="statHappiness">50</span>/100</div>
-      </div>
-      <div class="stat-text" id="statPoopRow">💩 응가: <span id="statPoop">0</span>개</div>
-      <div class="stat-text" id="statHealth">💪 건강: 양호</div>
-      <div class="mbti-text">🧠 MBTI: <span id="statMbti">ISFJ</span></div>
-    </div>
-
-    <!-- 상세 상태 모달 -->
-    <div id="statsModal" class="overlay hidden">
-      <div class="card" style="max-width: 400px; max-height: 80vh; overflow-y: auto;">
-        <div class="card-title">📊 상세 상태</div>
-        <div id="modalStatsContent"></div>
-        <button class="close-btn" onclick="document.getElementById('statsModal').classList.add('hidden')" style="background:#eee; border-radius:8px; margin-top: 15px; font-weight:bold;">닫기</button>
-      </div>
-    </div>
+    <!-- 상세 상태 컴포넌트는 statusScreen으로 분리됨 -->
 
     <div id="aliveActions">
       <button class="gacha-btn hidden" id="gachaBtn" onclick="doGacha()">✨ 새 알 뽑기 (가챠) ✨</button>
@@ -335,6 +321,70 @@
     </div>
 
     <button class="dev-btn" onclick="doTimeTravel(6)">[Dev] 6시간 뒤로 감기 (Time Travel)</button>
+  </div>
+
+  <!-- ============ STATUS SCREEN ============ -->
+  <div id="statusScreen" class="hidden" style="background:#F5F5F5; min-height:100vh; padding: 20px; position:absolute; top:0; left:0; width:100%; z-index:9999; box-sizing:border-box;">
+    <div class="title" style="margin-top: 20px; margin-bottom: 25px;">📊 상세 상태</div>
+    <div class="stats-card" id="statsCard" style="background:transparent; box-shadow:none; padding:0;">
+      <div class="gauge-row">
+        <div class="gauge-label" style="font-weight:bold;">🍖 포만감</div>
+        <div class="gauge-track-inner-shadow">
+          <div class="gauge-fill-svg" id="gaugeFullness" style="width:50%">
+            <img src="/static/svg/bar.svg">
+          </div>
+        </div>
+        <div class="gauge-value"><span id="statFullness">50</span>/100</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label" style="font-weight:bold;">💖 친밀도</div>
+        <div class="gauge-track-inner-shadow">
+          <div class="gauge-fill-svg" id="gaugeIntimacy" style="width:50%">
+            <img src="/static/svg/bar.svg">
+          </div>
+        </div>
+        <div class="gauge-value"><span id="statIntimacy">50</span>/100</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label" style="font-weight:bold;">✨ 청결도</div>
+        <div class="gauge-track-inner-shadow">
+          <div class="gauge-fill-svg" id="gaugeCleanliness" style="width:100%">
+            <img src="/static/svg/bar.svg">
+          </div>
+        </div>
+        <div class="gauge-value"><span id="statCleanliness">100</span>/100</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label" style="font-weight:bold;">⚖️ 몸무게</div>
+        <div class="gauge-track-inner-shadow">
+          <div class="gauge-fill-svg" id="gaugeWeight" style="width:50%">
+            <img src="/static/svg/bar.svg">
+          </div>
+        </div>
+        <div class="gauge-value"><span id="statWeight">50</span>/100</div>
+      </div>
+      <div class="gauge-row">
+        <div class="gauge-label" style="font-weight:bold;">😊 행복도</div>
+        <div class="gauge-track-inner-shadow">
+          <div class="gauge-fill-svg" id="gaugeHappiness" style="width:50%">
+            <img src="/static/svg/bar.svg">
+          </div>
+        </div>
+        <div class="gauge-value"><span id="statHappiness">50</span>/100</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+        <div class="stat-text" id="statPoopRow" style="font-weight:bold;">💩 응가: <span id="statPoop">0</span>개</div>
+        <div class="stat-text" id="statHealth" style="font-weight:bold;">💪 건강: 양호</div>
+        <div class="mbti-text" style="color:#6A1B9A; font-weight:bold;">🧠 MBTI: <span id="statMbti">ISFJ</span></div>
+      </div>
+      
+      <div style="background:#FFF9C4; padding:15px; border-radius:10px; border:1px solid #FBC02D; margin-top:25px;">
+        <div style="font-size:16px; font-weight:bold; color:#E65100; margin-bottom:5px;">오늘의 운세 (등급: <span id="fortuneTierStatus">3</span>)</div>
+        <div style="font-size:14px; color:#333; line-height:20px;" id="fortuneDescStatus">무난하고 평화로운 하루입니다. 낮잠 자기에 딱 좋아요.</div>
+      </div>
+
+    </div>
+    <button class="primary-btn" onclick="hideStatusScreen()" style="background:#2196F3; margin-top: 30px;">닫기</button>
   </div>
 
   <!-- ============ MEAL GACHA MODAL (11번) ============ -->
@@ -1550,6 +1600,10 @@ function render() {
   const finalTier = calculateFortuneTier(state, baseTier);
   document.getElementById('fortuneTier').textContent = finalTier;
   document.getElementById('fortuneDesc').textContent = getMockFortuneText(finalTier, '甲', '子');
+  if (document.getElementById('fortuneTierStatus')) {
+    document.getElementById('fortuneTierStatus').textContent = finalTier;
+    document.getElementById('fortuneDescStatus').textContent = getMockFortuneText(finalTier, '甲', '子');
+  }
 
   // Action visibility
   document.getElementById('aliveActions').classList.toggle('hidden', state.isDead);
@@ -2042,9 +2096,13 @@ if (state.userProfile) {
 }
 
 function showStatsModal() {
-  const content = document.getElementById('statsCard').innerHTML;
-  document.getElementById('modalStatsContent').innerHTML = content;
-  document.getElementById('statsModal').classList.remove('hidden');
+  document.getElementById('mainScreen').classList.add('hidden');
+  document.getElementById('statusScreen').classList.remove('hidden');
+}
+
+function hideStatusScreen() {
+  document.getElementById('statusScreen').classList.add('hidden');
+  document.getElementById('mainScreen').classList.remove('hidden');
 }
 
 function handleFeedPress() {
