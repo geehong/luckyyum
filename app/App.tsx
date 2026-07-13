@@ -66,6 +66,11 @@ const App = () => {
   // 11번: 밥주기는 시간대 슬롯(아침/점심/저녁) 안에서만, 끼니당 1번만 가능 — 별도 쿨다운 없이 슬롯 자체가 상한.
   const handleFeedPress = () => {
     if (petStage === 'egg') {
+      if (!petName) {
+        Alert.alert('알림', '펫 이름을 먼저 정해주세요!');
+        setRenameVisible(true);
+        return;
+      }
       feed();
       return;
     }
