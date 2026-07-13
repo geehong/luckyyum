@@ -245,17 +245,15 @@
 
     <div class="banner-container" style="margin: 10px 20px; display: flex; flex-direction: column; gap: 10px;">
       <!-- 퀘스트 배너 -->
-      <button id="questBanner" class="quest-banner hidden" onclick="handleResolveQuest()" style="margin-bottom: 0; background: none; border: none; padding: 0; position: relative; width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-        <img src="/static/svg/펫상태 쳇창-1.svg" style="position: absolute; width: 100%; height: 100%; object-fit: fill; z-index: 0;" alt="quest bg">
-        <div style="position: relative; z-index: 1; padding: 15px; text-align: center;">
-          <p class="quest-text" id="questText" style="font-weight: bold; color: #333; margin-bottom: 5px;"></p>
+      <button id="questBanner" class="quest-banner hidden" onclick="handleResolveQuest()" style="margin-bottom: 0; background: #EEECFF; border: none; padding: 15px; position: relative; width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 17.5px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2);">
+        <div style="position: relative; z-index: 1; text-align: center;">
+          <p class="quest-text" id="questText" style="font-weight: bold; color: #333; margin-bottom: 0;"></p>
         </div>
       </button>
 
       <!-- 운세 배너 -->
-      <div style="position: relative; width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center;">
-        <img src="/static/svg/운세 쳇창-1.svg" style="position: absolute; width: 100%; height: 100%; object-fit: fill; z-index: 0;" alt="fortune bg">
-        <div style="position: relative; z-index: 1; padding: 15px; text-align: center;">
+      <div style="position: relative; width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center; background: #EEECFF; border-radius: 17.5px; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2); padding: 15px;">
+        <div style="position: relative; z-index: 1; text-align: center;">
           <div style="font-size: 16px; font-weight: bold; color: #333; margin-bottom: 5px;">✨ 오늘의 운세 (등급: <span id="fortuneTier">3</span>)</div>
           <div style="font-size: 14px; color: #555;" id="fortuneDesc">무난하고 평화로운 하루입니다. 낮잠 자기에 딱 좋아요.</div>
         </div>

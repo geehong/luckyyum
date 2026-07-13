@@ -388,9 +388,6 @@ const App = () => {
       <View style={styles.bannerContainer}>
         {/* 운세 배너 */}
         <View style={styles.fortuneBannerWrapper}>
-          <View style={StyleSheet.absoluteFill}>
-            <FortuneBannerSvg width="100%" height="100%" preserveAspectRatio="none" />
-          </View>
           <View style={styles.fortuneBannerContent}>
             <Text style={styles.fortuneBannerTitle}>✨ 오늘의 운세 (등급: {finalFortuneTier})</Text>
             <Text style={styles.fortuneBannerDesc}>{fortuneText}</Text>
@@ -400,9 +397,6 @@ const App = () => {
         {/* 퀘스트 배너 */}
         {activeQuest && (
           <TouchableOpacity style={styles.questBannerWrapper} onPress={handleResolveQuest}>
-            <View style={StyleSheet.absoluteFill}>
-              <QuestBannerSvg width="100%" height="100%" preserveAspectRatio="none" />
-            </View>
             <View style={styles.questBannerContent}>
               <Text style={styles.questText}>💬 {activeQuest.text}</Text>
             </View>
@@ -647,16 +641,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
-    borderRadius: 12,
+    borderRadius: 17.5,
     overflow: 'hidden',
+    backgroundColor: '#EEECFF',
+    borderWidth: 1,
+    borderTopColor: '#d6d3f0',
+    borderLeftColor: '#d6d3f0',
+    borderBottomColor: '#ffffff',
+    borderRightColor: '#ffffff',
   },
   questBannerWrapper: {
     width: '100%',
     minHeight: 80,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 17.5,
     overflow: 'hidden',
+    backgroundColor: '#EEECFF',
+    borderWidth: 1,
+    borderTopColor: '#d6d3f0',
+    borderLeftColor: '#d6d3f0',
+    borderBottomColor: '#ffffff',
+    borderRightColor: '#ffffff',
   },
   questBannerContent: {
     padding: 15,
