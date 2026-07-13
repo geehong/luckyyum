@@ -12,9 +12,12 @@ import CheckInScreen from './src/components/CheckInScreen';
 import TalkMenuScreen from './src/components/TalkMenuScreen';
 import LiveTalkScreen from './src/components/LiveTalkScreen';
 import { ActionButton } from './src/components/ActionButton';
-import HeartBarSvg from './src/assets/svg/heartbar.svg';
+import HeartFullSvg from './src/assets/svg/heart_full.svg';
+import HeartHalfSvg from './src/assets/svg/heart_half.svg';
+import HeartEmptySvg from './src/assets/svg/heart_empty.svg';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import FortuneBannerSvg from './android/app/src/main/res/drawable/layout_svg/운세 쳇창-1.svg';
+import QuestBannerSvg from './android/app/src/main/res/drawable/layout_svg/펫상태 쳇창-1.svg';
 import BtnClean from './src/assets/svg/btn_clean.svg';
 import BtnStatus from './src/assets/svg/btn_status.svg';
 import BtnTalk from './src/assets/svg/btn_talk.svg';
@@ -370,11 +373,14 @@ const App = () => {
         <TouchableOpacity activeOpacity={0.8} onPress={() => setStatsModalVisible(true)}>
           <PetRenderer />
         </TouchableOpacity>
-        <View style={{ marginTop: 10, width: 232, height: 41, overflow: 'hidden' }}>
-          <View style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: '#EEECFF', borderRadius: 17.5 }} />
-          <View style={{ width: `${Math.max(0, Math.min(100, spirit_happiness))}%`, height: '100%', overflow: 'hidden' }}>
-             <HeartBarSvg width={232} height={41} />
-          </View>
+        <View style={{ marginTop: 15, width: 232, height: 41, backgroundColor: '#EEECFF', borderRadius: 17.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+          {Array.from({ length: 5 }).map((_, i) => {
+            const count = Math.max(0, Math.min(5, Math.floor(spirit_intimacy / 20)));
+            const decimal = (spirit_intimacy % 20) / 20;
+            if (i < count) return <HeartFullSvg key={i} width={36} height={28} />;
+            if (i === count && decimal >= 0.5) return <HeartHalfSvg key={i} width={36} height={28} />;
+            return <HeartEmptySvg key={i} width={36} height={28} />;
+          })}
         </View>
       </View>
 
@@ -393,9 +399,13 @@ const App = () => {
 
         {/* 퀘스트 배너 */}
         {activeQuest && (
-          <TouchableOpacity style={styles.questBanner} onPress={handleResolveQuest}>
-            <Text style={styles.questText}>💬 {activeQuest.text}</Text>
-            <Text style={styles.questHint}>탭해서 해결하기 →</Text>
+          <TouchableOpacity style={styles.questBannerWrapper} onPress={handleResolveQuest}>
+            <View style={StyleSheet.absoluteFill}>
+              <QuestBannerSvg width="100%" height="100%" preserveAspectRatio="none" />
+            </View>
+            <View style={styles.questBannerContent}>
+              <Text style={styles.questText}>💬 {activeQuest.text}</Text>
+            </View>
           </TouchableOpacity>
         )}
       </View>
@@ -639,6 +649,18 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 12,
     overflow: 'hidden',
+  },
+  questBannerWrapper: {
+    width: '100%',
+    minHeight: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  questBannerContent: {
+    padding: 15,
+    alignItems: 'center',
   },
   fortuneBannerContent: {
     padding: 15,

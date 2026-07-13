@@ -243,21 +243,23 @@
       </div>
     </div>
 
-    <div class="banner-container" style="margin: 10px 20px;">
+    <div class="banner-container" style="margin: 10px 20px; display: flex; flex-direction: column; gap: 10px;">
+      <!-- 퀘스트 배너 -->
+      <button id="questBanner" class="quest-banner hidden" onclick="handleResolveQuest()" style="margin-bottom: 0; background: none; border: none; padding: 0; position: relative; width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <img src="/static/svg/펫상태 쳇창-1.svg" style="position: absolute; width: 100%; height: 100%; object-fit: fill; z-index: 0;" alt="quest bg">
+        <div style="position: relative; z-index: 1; padding: 15px; text-align: center;">
+          <p class="quest-text" id="questText" style="font-weight: bold; color: #333; margin-bottom: 5px;"></p>
+        </div>
+      </button>
+
       <!-- 운세 배너 -->
-      <div style="position: relative; width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
-        <img src="/static/svg/운세 쳇창-1.svg" style="position: absolute; width: 100%; height: 100%; object-fit: fill; z-index: 0;" alt="banner bg">
+      <div style="position: relative; width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center;">
+        <img src="/static/svg/운세 쳇창-1.svg" style="position: absolute; width: 100%; height: 100%; object-fit: fill; z-index: 0;" alt="fortune bg">
         <div style="position: relative; z-index: 1; padding: 15px; text-align: center;">
           <div style="font-size: 16px; font-weight: bold; color: #333; margin-bottom: 5px;">✨ 오늘의 운세 (등급: <span id="fortuneTier">3</span>)</div>
           <div style="font-size: 14px; color: #555;" id="fortuneDesc">무난하고 평화로운 하루입니다. 낮잠 자기에 딱 좋아요.</div>
         </div>
       </div>
-
-      <!-- 퀘스트 배너 -->
-      <button id="questBanner" class="quest-banner hidden" onclick="handleResolveQuest()" style="margin-bottom: 0;">
-        <p class="quest-text" id="questText"></p>
-        <p class="quest-hint">탭해서 해결하기 →</p>
-      </button>
     </div>
 
     <div class="pet-box" onclick="showStatsModal()" style="cursor: pointer;">
@@ -268,9 +270,9 @@
         <span class="pet-poop-badge hidden" id="petPoopBadge"></span>
       </div>
       <div class="stage-text" id="stageText">Stage: EGG</div>
-      <div style="width: 232px; height: 41px; background: #EEECFF; border-radius: 17.5px; margin-top: 15px; position: relative; overflow: hidden;">
-        <div id="heartBarFill" style="height: 100%; width: 50%; background: #FFCA28; transition: width 0.3s; border-radius: 17.5px; display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap;">
-          <span style="font-size: 20px;">❤️❤️❤️❤️❤️</span>
+      <div style="width: 232px; height: 41px; background: #EEECFF; border-radius: 17.5px; margin-top: 15px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+        <div id="heartBarContainer" style="display: flex; gap: 4px; justify-content: center; align-items: center; z-index: 1;">
+          <!-- Hearts will be injected by JS -->
         </div>
       </div>
     </div>
@@ -305,12 +307,6 @@
       <div class="stat-text" id="statHealth">💪 건강: 양호</div>
       <div class="mbti-text">🧠 MBTI: <span id="statMbti">ISFJ</span></div>
     </div>
-
-    <div class="fortune-card">
-      <div class="fortune-title">오늘의 운세 (등급: <span id="fortuneTier">3</span>)</div>
-      <div class="fortune-desc" id="fortuneDesc">무난하고 평화로운 하루입니다. 낮잠 자기에 딱 좋아요.</div>
-    </div>
-
 
     <!-- 상세 상태 모달 -->
     <div id="statsModal" class="overlay hidden">
@@ -1515,6 +1511,26 @@ function render() {
   const quest = state.spirit_activeQuest ? PET_QUESTS.find((q) => q.id === state.spirit_activeQuest.questId) : null;
   document.getElementById('questBanner').classList.toggle('hidden', !quest);
   if (quest) document.getElementById('questText').textContent = `💬 ${quest.text}`;
+
+  // Hearts
+  const renderHearts = () => {
+    const hearts = [];
+    const count = Math.max(0, Math.min(5, Math.floor(state.spirit_intimacy / 20)));
+    const decimal = (state.spirit_intimacy % 20) / 20;
+    
+    for (let i = 0; i < 5; i++) {
+      if (i < count) {
+        hearts.push('<img src="/static/svg/heart_full.svg" style="width:36px; height:28px;" alt="full">');
+      } else if (i === count && decimal >= 0.5) {
+        hearts.push('<img src="/static/svg/heart_half.svg" style="width:36px; height:28px;" alt="half">');
+      } else {
+        hearts.push('<img src="/static/svg/heart_empty.svg" style="width:36px; height:28px;" alt="empty">');
+      }
+    }
+    const container = document.getElementById('heartBarContainer');
+    if (container) container.innerHTML = hearts.join('');
+  };
+  renderHearts();
 
   // Stats — 11번: 게이지 바로 표시
   const setGauge = (fillId, textId, value) => {
