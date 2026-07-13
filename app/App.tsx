@@ -378,22 +378,6 @@ const App = () => {
         </View>
       </View>
 
-      {/* 펫 영역 (카드 제거, 투명화) */}
-      <View style={{ alignItems: 'center', marginVertical: 20 }}>
-        <TouchableOpacity activeOpacity={0.8} onPress={() => setStatsModalVisible(true)}>
-          <PetRenderer />
-        </TouchableOpacity>
-        <View style={{ marginTop: 15, width: 232, height: 41, backgroundColor: '#EEECFF', borderRadius: 17.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderTopColor: '#d6d3f0', borderLeftColor: '#d6d3f0', borderBottomColor: '#ffffff', borderRightColor: '#ffffff' }}>
-          {Array.from({ length: 5 }).map((_, i) => {
-            const count = Math.max(0, Math.min(5, Math.floor(spirit_intimacy / 20)));
-            const decimal = (spirit_intimacy % 20) / 20;
-            if (i < count) return <HeartFullSvg key={i} width={36} height={28} />;
-            if (i === count && decimal >= 0.5) return <HeartHalfSvg key={i} width={36} height={28} />;
-            return <HeartEmptySvg key={i} width={36} height={28} />;
-          })}
-        </View>
-      </View>
-
       {/* 배너 영역: 운세와 퀘스트가 동시에 노출 가능하도록 구현 */}
       <View style={styles.bannerContainer}>
         {/* 운세 배너 */}
@@ -413,6 +397,23 @@ const App = () => {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* 펫 영역 (카드 제거, 투명화) */}
+      <View style={{ alignItems: 'center', marginVertical: 20 }}>
+        <TouchableOpacity activeOpacity={0.8} onPress={() => setStatsModalVisible(true)}>
+          <PetRenderer />
+        </TouchableOpacity>
+        <View style={{ marginTop: 15, width: 232, height: 41, backgroundColor: '#EEECFF', borderRadius: 17.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderTopColor: '#d6d3f0', borderLeftColor: '#d6d3f0', borderBottomColor: '#ffffff', borderRightColor: '#ffffff' }}>
+          {Array.from({ length: 5 }).map((_, i) => {
+            const count = Math.max(0, Math.min(5, Math.floor(spirit_intimacy / 20)));
+            const decimal = (spirit_intimacy % 20) / 20;
+            if (i < count) return <HeartFullSvg key={i} width={36} height={28} />;
+            if (i === count && decimal >= 0.5) return <HeartHalfSvg key={i} width={36} height={28} />;
+            return <HeartEmptySvg key={i} width={36} height={28} />;
+          })}
+        </View>
+      </View>
+
 
       {/* 4x2 버튼 그리드 */}
       {!isDead ? (
