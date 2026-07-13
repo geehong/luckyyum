@@ -79,14 +79,24 @@ const App = () => {
   };
 
   // 11번: 밥주기는 시간대 슬롯(아침/점심/저녁) 안에서만, 끼니당 1번만 가능 — 별도 쿨다운 없이 슬롯 자체가 상한.
-  const handleFeedPress = () => {
+  const handleBathePress = () => {
     if (petStage === 'egg') {
       if (!petName) {
         Alert.alert('알림', '펫 이름을 먼저 정해주세요!');
         setRenameVisible(true);
         return;
       }
-      feed();
+      feed(); // 이 함수가 알을 부화시키는 로직임
+      Alert.alert('알림', '따뜻하게 품어주었더니 알이 부화했습니다!');
+      return;
+    }
+    bathe();
+  };
+
+  const handleFeedPress = () => {
+    if (petStage === 'egg') {
+      // 밥주기는 알 상태에서 불가능
+      Alert.alert('알림', '아직 알 상태라서 밥을 먹을 수 없어요.');
       return;
     }
     openMealGacha();
@@ -409,7 +419,7 @@ const App = () => {
         <View style={styles.actionGridContainer}>
           <View style={styles.actionGridRow}>
             <ActionButton Icon={BtnFeed} onPress={() => { console.log("[Button] 포크(먹이주기) 눌림"); handleFeedPress(); }} />
-            <ActionButton Icon={BtnBathe} onPress={() => { console.log("[Button] 반달(부화시키기) 눌림"); bathe(); }} />
+            <ActionButton Icon={BtnBathe} onPress={() => { console.log("[Button] 반달(부화시키기) 눌림"); handleBathePress(); }} />
             <ActionButton Icon={BtnPlay} onPress={() => { console.log("[Button] 게임기(놀아주기) 눌림"); play(); }} />
             <ActionButton Icon={BtnClean} onPress={() => { console.log("[Button] 빗자루(청소하기) 눌림"); clean(); }} />
           </View>
