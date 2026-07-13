@@ -36,9 +36,9 @@ def extract_buttons(filepath, filenames):
         with open(out_filepath, 'w') as f:
             f.write(out_content)
 
-names2 = ["btn_medicine.svg", "btn_talk.svg", "btn_status.svg", "btn_pet.svg"]
+names2 = ["btn_feed.svg", "btn_bathe.svg", "btn_play.svg", "btn_medicine.svg"]
 extract_buttons("app/android/app/src/main/res/drawable/layout_svg/button2.svg", names2)
 
-names1 = ["btn_feed.svg", "btn_bathe.svg", "btn_play.svg", "btn_clean.svg"]
+names1 = ["btn_clean.svg", "btn_pet.svg", "btn_status.svg", "btn_talk.svg"]
 extract_buttons("app/android/app/src/main/res/drawable/layout_svg/button1-1.svg", names1)
 print("Done extracting completely isolated SVGs with correct mapping.")
