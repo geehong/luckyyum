@@ -15,9 +15,10 @@
     max-width: 430px;
     min-height: 100vh;
     margin: 0 auto;
-    background: #F5FCFF;
+    background: linear-gradient(180deg, #C2ACFF 0%, #B6E0F5 100%);
     padding: 20px;
     position: relative;
+    overflow-x: hidden;
   }
   button { font-family: inherit; cursor: pointer; border: none; }
   .hidden { display: none !important; }
@@ -67,8 +68,8 @@
   /* ---- Pet renderer ---- */
   .pet-box {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 20px; background: #fff; border-radius: 15px; margin-bottom: 20px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative;
+    padding: 20px; background: transparent; margin-bottom: 20px;
+    position: relative;
   }
   .pet-emoji { font-size: 80px; line-height: 1; }
   .pet-image-wrap { position: relative; }
@@ -127,21 +128,24 @@
 
   
     .action-btn-circle {
-      background: #B1A9FF;
-      border-radius: 50%;
-      aspect-ratio: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      width: 70px;
+      height: 70px;
+      border: none;
+      background: none;
       cursor: pointer;
-      box-shadow: 2px 2px 8px rgba(0,0,0,0.2), inset -2px -2px 5px rgba(0,0,0,0.1), inset 2px 2px 5px rgba(255,255,255,0.3);
-      color: #333;
-      font-weight: bold;
+      padding: 0;
+      transition: transform 0.1s;
+      box-shadow: none;
     }
     .action-btn-circle:active {
-      box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3);
-      background: #9D94F4;
+      transform: scale(0.9);
+      box-shadow: none;
+      background: none;
+    }
+    .action-btn-circle img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
   /* ---- Modals (dialogue-style, centered card) ---- */
@@ -239,10 +243,22 @@
       </div>
     </div>
 
-    <button id="questBanner" class="quest-banner hidden" onclick="handleResolveQuest()">
-      <p class="quest-text" id="questText"></p>
-      <p class="quest-hint">탭해서 해결하기 →</p>
-    </button>
+    <div class="banner-container" style="margin: 10px 20px;">
+      <!-- 운세 배너 -->
+      <div style="position: relative; width: 100%; min-height: 80px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px;">
+        <img src="/static/svg/운세 쳇창-1.svg" style="position: absolute; width: 100%; height: 100%; object-fit: fill; z-index: 0;" alt="banner bg">
+        <div style="position: relative; z-index: 1; padding: 15px; text-align: center;">
+          <div style="font-size: 16px; font-weight: bold; color: #333; margin-bottom: 5px;">✨ 오늘의 운세 (등급: <span id="fortuneTier">3</span>)</div>
+          <div style="font-size: 14px; color: #555;" id="fortuneDesc">무난하고 평화로운 하루입니다. 낮잠 자기에 딱 좋아요.</div>
+        </div>
+      </div>
+
+      <!-- 퀘스트 배너 -->
+      <button id="questBanner" class="quest-banner hidden" onclick="handleResolveQuest()" style="margin-bottom: 0;">
+        <p class="quest-text" id="questText"></p>
+        <p class="quest-hint">탭해서 해결하기 →</p>
+      </button>
+    </div>
 
     <div class="pet-box" onclick="showStatsModal()" style="cursor: pointer;">
       <div class="pet-image-wrap">
@@ -308,15 +324,15 @@
     <div id="aliveActions">
       <button class="gacha-btn hidden" id="gachaBtn" onclick="doGacha()">✨ 새 알 뽑기 (가챠) ✨</button>
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
-        <div class="action-btn-circle" onclick="doCleanAction()"><span style="font-size: 24px;">🧹</span><br><span style="font-size: 11px;">청소</span></div>
-        <div class="action-btn-circle" onclick="showStatsModal()"><span style="font-size: 24px;">⚖️</span><br><span style="font-size: 11px;">상태</span></div>
-        <div class="action-btn-circle" onclick="openTalkMenu()"><span style="font-size: 24px;">💬</span><br><span style="font-size: 11px;">대화</span></div>
-        <div class="action-btn-circle" onclick="doPetAction()"><span style="font-size: 24px;">😊</span><br><span style="font-size: 11px;">쓰다듬</span></div>
+        <button class="action-btn-circle" onclick="doCleanAction()"><img src="/static/svg/btn_clean.svg" alt="청소"></button>
+        <button class="action-btn-circle" onclick="showStatsModal()"><img src="/static/svg/btn_status.svg" alt="상태"></button>
+        <button class="action-btn-circle" id="talkBtn" onclick="openTalkMenu()"><img src="/static/svg/btn_talk.svg" alt="대화"></button>
+        <button class="action-btn-circle" onclick="doPetAction()"><img src="/static/svg/btn_pet.svg" alt="쓰다듬"></button>
         
-        <div class="action-btn-circle" id="feedBtn" onclick="handleFeedPress()"><span style="font-size: 24px;">🍚</span><br><span style="font-size: 11px;">밥주기</span></div>
-        <div class="action-btn-circle" onclick="doBatheAction()"><span style="font-size: 24px;">🛁</span><br><span style="font-size: 11px;">목욕</span></div>
-        <div class="action-btn-circle" onclick="doPlayAction()"><span style="font-size: 24px;">⚽</span><br><span style="font-size: 11px;">놀기</span></div>
-        <div class="action-btn-circle" id="medicineBtn" onclick="handleMedicineAction()"><span style="font-size: 24px;">💊</span><br><span style="font-size: 11px;">약/예방</span></div>
+        <button class="action-btn-circle" id="feedBtn" onclick="handleFeedPress()"><img src="/static/svg/btn_feed.svg" alt="밥주기"></button>
+        <button class="action-btn-circle" onclick="doBatheAction()"><img src="/static/svg/btn_bathe.svg" alt="목욕"></button>
+        <button class="action-btn-circle" onclick="doPlayAction()"><img src="/static/svg/btn_play.svg" alt="놀기"></button>
+        <button class="action-btn-circle" id="medicineBtn" onclick="handleMedicineAction()"><img src="/static/svg/btn_medicine.svg" alt="약"></button>
       </div>
       <div id="healthRow" class="hidden"></div>
     </div>
@@ -1525,11 +1541,16 @@ function render() {
   document.getElementById('aliveActions').classList.toggle('hidden', state.isDead);
   document.getElementById('deadActions').classList.toggle('hidden', !state.isDead);
   document.getElementById('gachaBtn').classList.toggle('hidden', state.petStage !== 'egg');
-  document.getElementById('feedBtn').textContent = state.petStage === 'egg' ? '부화시키기 🥚' : '밥주기 🍚';
-  document.getElementById('talkBtn').classList.toggle('hidden', state.petStage === 'egg');
+  const feedBtn = document.getElementById('feedBtn');
+  if (feedBtn) feedBtn.style.opacity = '1';
+  
+  const talkBtn = document.getElementById('talkBtn');
+  if (talkBtn) talkBtn.style.opacity = state.petStage === 'egg' ? '0.5' : '1';
+  
   document.getElementById('healthRow').classList.toggle('hidden', state.petStage === 'egg' || state.physical_health !== 'sick');
-  document.getElementById('medicineBtn').classList.toggle('hidden', state.physical_health !== 'sick');
-  document.getElementById('medicineBtn').textContent = `약주기 💊 (${state.physical_medicineDoses}/${BALANCE.MEDICINE_DOSES_REQUIRED})`;
+  
+  const medicineBtn = document.getElementById('medicineBtn');
+  if (medicineBtn) medicineBtn.style.opacity = state.physical_health === 'sick' ? '1' : '0.5';
 
   document.getElementById('talkMenuPersonalityBtn').textContent =
     state.petStage === 'adult' ? '💬 일상대화' : '🧠 성향 대화';
