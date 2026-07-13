@@ -408,16 +408,16 @@ const App = () => {
       {!isDead ? (
         <View style={styles.actionGridContainer}>
           <View style={styles.actionGridRow}>
-            <ActionButton Icon={BtnFeed} onPress={handleFeedPress} />
-            <ActionButton Icon={BtnBathe} onPress={bathe} />
-            <ActionButton Icon={BtnPlay} onPress={play} />
-            <ActionButton Icon={BtnClean} onPress={clean} />
+            <ActionButton Icon={BtnFeed} onPress={() => { console.log("[Button] 포크(먹이주기) 눌림"); handleFeedPress(); }} />
+            <ActionButton Icon={BtnBathe} onPress={() => { console.log("[Button] 반달(부화시키기) 눌림"); bathe(); }} />
+            <ActionButton Icon={BtnPlay} onPress={() => { console.log("[Button] 게임기(놀아주기) 눌림"); play(); }} />
+            <ActionButton Icon={BtnClean} onPress={() => { console.log("[Button] 빗자루(청소하기) 눌림"); clean(); }} />
           </View>
           <View style={styles.actionGridRow}>
-            <ActionButton Icon={BtnMedicine} onPress={physical_health === 'sick' ? giveMedicine : vaccinate} />
-            <ActionButton Icon={BtnTalk} onPress={openTalkMenu} />
-            <ActionButton Icon={BtnStatus} onPress={() => setStatsModalVisible(true)} />
-            <ActionButton Icon={BtnPet} onPress={pet} />
+            <ActionButton Icon={BtnMedicine} onPress={() => { console.log("[Button] 약통(건강검진) 눌림"); physical_health === 'sick' ? giveMedicine() : vaccinate(); }} />
+            <ActionButton Icon={BtnTalk} onPress={() => { console.log("[Button] 사람2명(채팅) 눌림"); openTalkMenu(); }} />
+            <ActionButton Icon={BtnStatus} onPress={() => { console.log("[Button] 학사모(MBTI) 눌림"); setStatsModalVisible(true); }} />
+            <ActionButton Icon={BtnPet} onPress={() => { console.log("[Button] 체중계(생각중) 눌림"); pet(); }} />
           </View>
         </View>
       ) : (

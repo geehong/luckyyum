@@ -318,15 +318,15 @@
     <div id="aliveActions">
       <button class="gacha-btn hidden" id="gachaBtn" onclick="doGacha()">✨ 새 알 뽑기 (가챠) ✨</button>
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
-        <button class="action-btn-circle" id="feedBtn" onclick="handleFeedPress()"><img src="/static/svg/btn_feed.svg" alt="먹이주기"></button>
-        <button class="action-btn-circle" onclick="doBatheAction()"><img src="/static/svg/btn_bathe.svg" alt="부화시키기"></button>
-        <button class="action-btn-circle" onclick="doPlayAction()"><img src="/static/svg/btn_play.svg" alt="놀아주기"></button>
-        <button class="action-btn-circle" onclick="doCleanAction()"><img src="/static/svg/btn_clean.svg" alt="청소하기"></button>
+        <button class="action-btn-circle" id="feedBtn" onclick="console.log('[Button] 포크(먹이주기) 눌림'); handleFeedPress()"><img src="/static/svg/btn_feed.svg" alt="먹이주기"></button>
+        <button class="action-btn-circle" onclick="console.log('[Button] 반달(부화시키기) 눌림'); doBatheAction()"><img src="/static/svg/btn_bathe.svg" alt="부화시키기"></button>
+        <button class="action-btn-circle" onclick="console.log('[Button] 게임기(놀아주기) 눌림'); doPlayAction()"><img src="/static/svg/btn_play.svg" alt="놀아주기"></button>
+        <button class="action-btn-circle" onclick="console.log('[Button] 빗자루(청소하기) 눌림'); doCleanAction()"><img src="/static/svg/btn_clean.svg" alt="청소하기"></button>
         
-        <button class="action-btn-circle" id="medicineBtn" onclick="handleMedicineAction()"><img src="/static/svg/btn_medicine.svg" alt="건강검진"></button>
-        <button class="action-btn-circle" id="talkBtn" onclick="openTalkMenu()"><img src="/static/svg/btn_talk.svg" alt="채팅"></button>
-        <button class="action-btn-circle" onclick="showStatsModal()"><img src="/static/svg/btn_status.svg" alt="학습(MBTI)"></button>
-        <button class="action-btn-circle" onclick="doPetAction()"><img src="/static/svg/btn_pet.svg" alt="체중계(생각중)"></button>
+        <button class="action-btn-circle" id="medicineBtn" onclick="console.log('[Button] 약통(건강검진) 눌림'); handleMedicineAction()"><img src="/static/svg/btn_medicine.svg" alt="건강검진"></button>
+        <button class="action-btn-circle" id="talkBtn" onclick="console.log('[Button] 사람2명(채팅) 눌림'); openTalkMenu()"><img src="/static/svg/btn_talk.svg" alt="채팅"></button>
+        <button class="action-btn-circle" onclick="console.log('[Button] 학사모(MBTI) 눌림'); showStatsModal()"><img src="/static/svg/btn_status.svg" alt="학습(MBTI)"></button>
+        <button class="action-btn-circle" onclick="console.log('[Button] 체중계(생각중) 눌림'); doPetAction()"><img src="/static/svg/btn_pet.svg" alt="체중계(생각중)"></button>
       </div>
       <div id="healthRow" class="hidden"></div>
     </div>
