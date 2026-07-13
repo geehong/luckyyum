@@ -417,6 +417,11 @@ const App = () => {
       {/* 4x2 버튼 그리드 */}
       {!isDead ? (
         <View style={styles.actionGridContainer}>
+          {petStage === 'egg' && (
+            <TouchableOpacity style={styles.gachaButton} onPress={gachaEgg}>
+              <Text style={styles.gachaButtonText}>✨ 새 알 뽑기 (가챠) ✨</Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.actionGridRow}>
             <ActionButton Icon={BtnFeed} onPress={() => { console.log("[Button] 포크(먹이주기) 눌림"); handleFeedPress(); }} />
             <ActionButton Icon={BtnBathe} onPress={() => { console.log("[Button] 반달(부화시키기) 눌림"); handleBathePress(); }} />
@@ -786,6 +791,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginTop: 10,
     width: '100%',
+  },
+  gachaButton: {
+    backgroundColor: '#ffd700',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  gachaButtonText: {
+    color: '#333',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   actionGridRow: {
     flexDirection: 'row',

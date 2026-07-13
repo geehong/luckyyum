@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
+import { TouchableOpacity, Animated, StyleSheet, useWindowDimensions } from 'react-native';
 
 interface ActionButtonProps {
   Icon: React.FC<any>;
@@ -8,6 +8,9 @@ interface ActionButtonProps {
 
 export const ActionButton: React.FC<ActionButtonProps> = ({ Icon, onPress }) => {
   const scaleValue = useRef(new Animated.Value(1)).current;
+  const { width } = useWindowDimensions();
+  // Calculate size dynamically: screen width - padding (40) - some gap (30), divided by 4
+  const buttonSize = Math.floor((width - 40 - 30) / 4); 
 
   const handlePressIn = () => {
     Animated.spring(scaleValue, {
@@ -29,10 +32,10 @@ export const ActionButton: React.FC<ActionButtonProps> = ({ Icon, onPress }) => 
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onPress={onPress}
-      style={styles.container}
+      style={[styles.container, { width: buttonSize, height: buttonSize }]}
     >
       <Animated.View style={[styles.svgContainer, { transform: [{ scale: scaleValue }] }]}>
-        <Icon width={86} height={86} />
+        <Icon width={buttonSize} height={buttonSize} />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -40,11 +43,8 @@ export const ActionButton: React.FC<ActionButtonProps> = ({ Icon, onPress }) => 
 
 const styles = StyleSheet.create({
   container: {
-    width: 86,
-    height: 86,
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 6,
   },
   svgContainer: {
     width: '100%',
