@@ -1,60 +1,55 @@
-import React, { useState } from 'react';
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
-import EmptyButton from '../assets/svg/EmptyButton.svg';
-import EmptyButtonPressed from '../assets/svg/EmptyButtonPressed.svg';
+import React, { useRef } from 'react';
+import { TouchableOpacity, Animated, StyleSheet } from 'react-native';
 
 interface ActionButtonProps {
-  emoji: string;
+  Icon: React.FC<any>;
   onPress: () => void;
 }
 
-export const ActionButton: React.FC<ActionButtonProps> = ({ emoji, onPress }) => {
-  const [isPressed, setIsPressed] = useState(false);
+export const ActionButton: React.FC<ActionButtonProps> = ({ Icon, onPress }) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.9,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
 
   return (
     <TouchableOpacity
       activeOpacity={1}
-      onPressIn={() => setIsPressed(true)}
-      onPressOut={() => setIsPressed(false)}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
       onPress={onPress}
       style={styles.container}
     >
-      <View style={styles.svgContainer}>
-        {isPressed ? (
-          <EmptyButtonPressed width={60} height={60} />
-        ) : (
-          <EmptyButton width={60} height={60} />
-        )}
-      </View>
-      <View style={styles.contentContainer}>
-        <Text style={styles.emojiText}>{emoji}</Text>
-      </View>
+      <Animated.View style={[styles.svgContainer, { transform: [{ scale: scaleValue }] }]}>
+        <Icon width={80} height={80} />
+      </Animated.View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: 60,
-    height: 60,
+    width: 80,
+    height: 80,
     justifyContent: 'center',
     alignItems: 'center',
-    margin: 10,
+    margin: 6,
   },
   svgContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  contentContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
     width: '100%',
     height: '100%',
-  },
-  emojiText: {
-    fontSize: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -13,6 +13,16 @@ import TalkMenuScreen from './src/components/TalkMenuScreen';
 import LiveTalkScreen from './src/components/LiveTalkScreen';
 import { ActionButton } from './src/components/ActionButton';
 import HeartBarSvg from './src/assets/svg/heartbar.svg';
+import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
+import FortuneBannerSvg from './android/app/src/main/res/drawable/layout_svg/운세 쳇창-1.svg';
+import BtnClean from './src/assets/svg/btn_clean.svg';
+import BtnStatus from './src/assets/svg/btn_status.svg';
+import BtnTalk from './src/assets/svg/btn_talk.svg';
+import BtnPet from './src/assets/svg/btn_pet.svg';
+import BtnFeed from './src/assets/svg/btn_feed.svg';
+import BtnBathe from './src/assets/svg/btn_bathe.svg';
+import BtnPlay from './src/assets/svg/btn_play.svg';
+import BtnMedicine from './src/assets/svg/btn_medicine.svg';
 import { syncOfflineTime, timeTravelForward } from './src/utils/timeSync';
 import { calculateMBTI } from './src/utils/mbtiCalculator';
 import { calculateFortuneTier, getMockFortuneText, generateTodayBaseTier } from './src/utils/fortuneLogic';
@@ -333,6 +343,17 @@ const App = () => {
 
   return (
     <SafeAreaView style={styles.screenContainer}>
+      <View style={[StyleSheet.absoluteFill, { zIndex: -1 }]}>
+        <Svg height="100%" width="100%">
+          <Defs>
+            <LinearGradient id="mainBg" x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0" stopColor="#C2ACFF" />
+              <Stop offset="1" stopColor="#B6E0F5" />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width="100%" height="100%" fill="url(#mainBg)" />
+        </Svg>
+      </View>
       <ScrollView contentContainerStyle={styles.scrollContent}>
       <View style={styles.headerRow}>
         <Text style={styles.title}>LuckyYum (In-App)</Text>
@@ -344,7 +365,7 @@ const App = () => {
         </View>
       </View>
 
-      {/* 메인 펫 영역 */}
+      {/* 펫 영역 (카드 제거, 투명화) */}
       <View style={{ alignItems: 'center', marginVertical: 20 }}>
         <TouchableOpacity activeOpacity={0.8} onPress={() => setStatsModalVisible(true)}>
           <PetRenderer />
@@ -357,27 +378,42 @@ const App = () => {
         </View>
       </View>
 
-      {activeQuest && (
-        <TouchableOpacity style={styles.questBanner} onPress={handleResolveQuest}>
-          <Text style={styles.questText}>💬 {activeQuest.text}</Text>
-          <Text style={styles.questHint}>탭해서 해결하기 →</Text>
-        </TouchableOpacity>
-      )}
+      {/* 배너 영역: 운세와 퀘스트가 동시에 노출 가능하도록 구현 */}
+      <View style={styles.bannerContainer}>
+        {/* 운세 배너 */}
+        <View style={styles.fortuneBannerWrapper}>
+          <View style={StyleSheet.absoluteFill}>
+            <FortuneBannerSvg width="100%" height="100%" preserveAspectRatio="none" />
+          </View>
+          <View style={styles.fortuneBannerContent}>
+            <Text style={styles.fortuneBannerTitle}>✨ 오늘의 운세 (등급: {finalFortuneTier})</Text>
+            <Text style={styles.fortuneBannerDesc}>{fortuneText}</Text>
+          </View>
+        </View>
+
+        {/* 퀘스트 배너 */}
+        {activeQuest && (
+          <TouchableOpacity style={styles.questBanner} onPress={handleResolveQuest}>
+            <Text style={styles.questText}>💬 {activeQuest.text}</Text>
+            <Text style={styles.questHint}>탭해서 해결하기 →</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* 4x2 버튼 그리드 */}
       {!isDead ? (
         <View style={styles.actionGridContainer}>
           <View style={styles.actionGridRow}>
-            <ActionButton emoji="🧹" onPress={clean} />
-            <ActionButton emoji="⚖️" onPress={() => setStatsModalVisible(true)} />
-            <ActionButton emoji="💬" onPress={openTalkMenu} />
-            <ActionButton emoji="😊" onPress={pet} />
+            <ActionButton Icon={BtnClean} onPress={clean} />
+            <ActionButton Icon={BtnStatus} onPress={() => setStatsModalVisible(true)} />
+            <ActionButton Icon={BtnTalk} onPress={openTalkMenu} />
+            <ActionButton Icon={BtnPet} onPress={pet} />
           </View>
           <View style={styles.actionGridRow}>
-            <ActionButton emoji="🍚" onPress={handleFeedPress} />
-            <ActionButton emoji="🛁" onPress={bathe} />
-            <ActionButton emoji="⚽" onPress={play} />
-            <ActionButton emoji="💊" onPress={physical_health === 'sick' ? giveMedicine : vaccinate} />
+            <ActionButton Icon={BtnFeed} onPress={handleFeedPress} />
+            <ActionButton Icon={BtnBathe} onPress={bathe} />
+            <ActionButton Icon={BtnPlay} onPress={play} />
+            <ActionButton Icon={BtnMedicine} onPress={physical_health === 'sick' ? giveMedicine : vaccinate} />
           </View>
         </View>
       ) : (
@@ -566,13 +602,13 @@ const App = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5FCFF',
+    backgroundColor: 'transparent',
     padding: 20,
     justifyContent: 'center',
   },
   screenContainer: {
     flex: 1,
-    backgroundColor: '#F5FCFF',
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     padding: 20,
@@ -590,13 +626,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
+  bannerContainer: {
+    marginVertical: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  fortuneBannerWrapper: {
+    width: '100%',
+    minHeight: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  fortuneBannerContent: {
+    padding: 15,
+    alignItems: 'center',
+  },
+  fortuneBannerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  fortuneBannerDesc: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
+  },
   questBanner: {
-    backgroundColor: '#FFF3E0',
+    width: '100%',
+    backgroundColor: 'rgba(255, 243, 224, 0.9)',
     borderColor: '#FFB74D',
     borderWidth: 1,
     borderRadius: 10,
     padding: 12,
-    marginBottom: 15,
   },
   questText: {
     fontSize: 14,
