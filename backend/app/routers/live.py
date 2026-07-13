@@ -4,7 +4,7 @@ import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from google import genai
+import google.genai as genai
 from google.genai import types
 
 router = APIRouter(tags=["Live"])
