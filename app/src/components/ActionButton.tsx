@@ -32,7 +32,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({ Icon, onPress }) => 
       style={styles.container}
     >
       <Animated.View style={[styles.svgContainer, { transform: [{ scale: scaleValue }] }]}>
-        <Icon width={80} height={80} />
+        <Icon width={86} height={86} />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -40,8 +40,8 @@ export const ActionButton: React.FC<ActionButtonProps> = ({ Icon, onPress }) => 
 
 const styles = StyleSheet.create({
   container: {
-    width: 80,
-    height: 80,
+    width: 86,
+    height: 86,
     justifyContent: 'center',
     alignItems: 'center',
     margin: 6,

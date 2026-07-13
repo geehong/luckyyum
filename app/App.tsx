@@ -373,7 +373,7 @@ const App = () => {
         <TouchableOpacity activeOpacity={0.8} onPress={() => setStatsModalVisible(true)}>
           <PetRenderer />
         </TouchableOpacity>
-        <View style={{ marginTop: 15, width: 232, height: 41, backgroundColor: '#EEECFF', borderRadius: 17.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <View style={{ marginTop: 15, width: 232, height: 41, backgroundColor: '#EEECFF', borderRadius: 17.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 1, borderTopColor: '#d6d3f0', borderLeftColor: '#d6d3f0', borderBottomColor: '#ffffff', borderRightColor: '#ffffff' }}>
           {Array.from({ length: 5 }).map((_, i) => {
             const count = Math.max(0, Math.min(5, Math.floor(spirit_intimacy / 20)));
             const decimal = (spirit_intimacy % 20) / 20;
@@ -414,16 +414,16 @@ const App = () => {
       {!isDead ? (
         <View style={styles.actionGridContainer}>
           <View style={styles.actionGridRow}>
-            <ActionButton Icon={BtnClean} onPress={clean} />
-            <ActionButton Icon={BtnStatus} onPress={() => setStatsModalVisible(true)} />
-            <ActionButton Icon={BtnTalk} onPress={openTalkMenu} />
-            <ActionButton Icon={BtnPet} onPress={pet} />
-          </View>
-          <View style={styles.actionGridRow}>
             <ActionButton Icon={BtnFeed} onPress={handleFeedPress} />
             <ActionButton Icon={BtnBathe} onPress={bathe} />
             <ActionButton Icon={BtnPlay} onPress={play} />
+            <ActionButton Icon={BtnClean} onPress={clean} />
+          </View>
+          <View style={styles.actionGridRow}>
             <ActionButton Icon={BtnMedicine} onPress={physical_health === 'sick' ? giveMedicine : vaccinate} />
+            <ActionButton Icon={BtnTalk} onPress={openTalkMenu} />
+            <ActionButton Icon={BtnStatus} onPress={() => setStatsModalVisible(true)} />
+            <ActionButton Icon={BtnPet} onPress={pet} />
           </View>
         </View>
       ) : (

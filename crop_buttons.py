@@ -1,4 +1,3 @@
-import os
 import re
 
 def crop_svg(filepath, out_filepath, center_x):
@@ -6,12 +5,12 @@ def crop_svg(filepath, out_filepath, center_x):
         content = f.read()
     
     # Replace the width, height, and viewBox
-    # Original is <svg width="383" height="109" viewBox="0 0 383 109" ...>
-    # We want width="96" height="109" viewBox="<center_x - 48> 0 96 109"
-    new_viewbox = f"{center_x - 48} 0 96 109"
+    # We want width="86" height="86" viewBox="<center_x - 43> <53 - 43> 86 86"
+    new_viewbox = f"{center_x - 43} 10 86 86"
     
     # regex to replace width="..."
-    content = re.sub(r'width="[0-9.]+"', 'width="96"', content, count=1)
+    content = re.sub(r'width="[0-9.]+"', 'width="86"', content, count=1)
+    content = re.sub(r'height="[0-9.]+"', 'height="86"', content, count=1)
     content = re.sub(r'viewBox="[^"]+"', f'viewBox="{new_viewbox}"', content, count=1)
     
     with open(out_filepath, 'w') as f:

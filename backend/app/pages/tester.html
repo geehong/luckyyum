@@ -128,8 +128,8 @@
 
   
     .action-btn-circle {
-      width: 70px;
-      height: 70px;
+      width: 80px;
+      height: 80px;
       border: none;
       background: none;
       cursor: pointer;
@@ -270,7 +270,7 @@
         <span class="pet-poop-badge hidden" id="petPoopBadge"></span>
       </div>
       <div class="stage-text" id="stageText">Stage: EGG</div>
-      <div style="width: 232px; height: 41px; background: #EEECFF; border-radius: 17.5px; margin-top: 15px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+      <div style="width: 232px; height: 41px; background: #EEECFF; border-radius: 17.5px; margin-top: 15px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.2);">
         <div id="heartBarContainer" style="display: flex; gap: 4px; justify-content: center; align-items: center; z-index: 1;">
           <!-- Hearts will be injected by JS -->
         </div>
@@ -320,15 +320,15 @@
     <div id="aliveActions">
       <button class="gacha-btn hidden" id="gachaBtn" onclick="doGacha()">✨ 새 알 뽑기 (가챠) ✨</button>
       <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
-        <button class="action-btn-circle" onclick="doCleanAction()"><img src="/static/svg/btn_clean.svg" alt="청소"></button>
-        <button class="action-btn-circle" onclick="showStatsModal()"><img src="/static/svg/btn_status.svg" alt="상태"></button>
-        <button class="action-btn-circle" id="talkBtn" onclick="openTalkMenu()"><img src="/static/svg/btn_talk.svg" alt="대화"></button>
-        <button class="action-btn-circle" onclick="doPetAction()"><img src="/static/svg/btn_pet.svg" alt="쓰다듬"></button>
-        
         <button class="action-btn-circle" id="feedBtn" onclick="handleFeedPress()"><img src="/static/svg/btn_feed.svg" alt="밥주기"></button>
-        <button class="action-btn-circle" onclick="doBatheAction()"><img src="/static/svg/btn_bathe.svg" alt="목욕"></button>
-        <button class="action-btn-circle" onclick="doPlayAction()"><img src="/static/svg/btn_play.svg" alt="놀기"></button>
-        <button class="action-btn-circle" id="medicineBtn" onclick="handleMedicineAction()"><img src="/static/svg/btn_medicine.svg" alt="약"></button>
+        <button class="action-btn-circle" onclick="doBatheAction()"><img src="/static/svg/btn_bathe.svg" alt="부화시키기"></button>
+        <button class="action-btn-circle" onclick="doPlayAction()"><img src="/static/svg/btn_play.svg" alt="놀아주기"></button>
+        <button class="action-btn-circle" onclick="doCleanAction()"><img src="/static/svg/btn_clean.svg" alt="청소"></button>
+        
+        <button class="action-btn-circle" id="medicineBtn" onclick="handleMedicineAction()"><img src="/static/svg/btn_medicine.svg" alt="건강검진"></button>
+        <button class="action-btn-circle" id="talkBtn" onclick="openTalkMenu()"><img src="/static/svg/btn_talk.svg" alt="채팅"></button>
+        <button class="action-btn-circle" onclick="showStatsModal()"><img src="/static/svg/btn_status.svg" alt="MBTI"></button>
+        <button class="action-btn-circle" onclick="doPetAction()"><img src="/static/svg/btn_pet.svg" alt="생각중"></button>
       </div>
       <div id="healthRow" class="hidden"></div>
     </div>
