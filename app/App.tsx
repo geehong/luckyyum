@@ -11,6 +11,8 @@ import PetDialogue from './src/components/PetDialogue';
 import CheckInScreen from './src/components/CheckInScreen';
 import TalkMenuScreen from './src/components/TalkMenuScreen';
 import LiveTalkScreen from './src/components/LiveTalkScreen';
+import { ActionButton } from './src/components/ActionButton';
+import HeartBarSvg from './src/assets/svg/heartbar.svg';
 import { syncOfflineTime, timeTravelForward } from './src/utils/timeSync';
 import { calculateMBTI } from './src/utils/mbtiCalculator';
 import { calculateFortuneTier, getMockFortuneText, generateTodayBaseTier } from './src/utils/fortuneLogic';
@@ -86,7 +88,7 @@ const App = () => {
   const [isLeaderboardVisible, setLeaderboardVisible] = useState(false);
   const [isMemorialVisible, setMemorialVisible] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
-
+  const [isStatsModalVisible, setStatsModalVisible] = useState(false);
 
   // M3 대화 & 안부 묻기 화면 라우팅 ('말걸기' 서브메뉴 → 성향대화/일상대화(Live) 또는 안부묻기)
   const [isTalkMenuVisible, setTalkMenuVisible] = useState(false);
@@ -342,7 +344,18 @@ const App = () => {
         </View>
       </View>
 
-      <PetRenderer />
+      {/* 메인 펫 영역 */}
+      <View style={{ alignItems: 'center', marginVertical: 20 }}>
+        <TouchableOpacity activeOpacity={0.8} onPress={() => setStatsModalVisible(true)}>
+          <PetRenderer />
+        </TouchableOpacity>
+        <View style={{ marginTop: 10, width: 232, height: 41, overflow: 'hidden' }}>
+          <View style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: '#EEECFF', borderRadius: 17.5 }} />
+          <View style={{ width: `${Math.max(0, Math.min(100, spirit_happiness))}%`, height: '100%', overflow: 'hidden' }}>
+             <HeartBarSvg width={232} height={41} />
+          </View>
+        </View>
+      </View>
 
       {activeQuest && (
         <TouchableOpacity style={styles.questBanner} onPress={handleResolveQuest}>
@@ -351,52 +364,51 @@ const App = () => {
         </TouchableOpacity>
       )}
 
-      <View style={styles.statsCard}>
-        <GaugeBar label="🍖 Fullness" value={physical_fullness} color="#FF7043" />
-        <GaugeBar label="💖 Intimacy" value={spirit_intimacy} color="#EC407A" />
-        <GaugeBar label="✨ Cleanliness" value={physical_cleanliness} color="#42A5F5" />
-        <GaugeBar label="⚖️ Weight" value={physical_weight} color="#8D6E63" />
-        <GaugeBar label="😊 Happiness" value={spirit_happiness} color="#FFCA28" />
-        {env_poopCount > 0 && <Text style={styles.statText}>💩 응가: {env_poopCount}개</Text>}
-        <Text style={styles.statText}>{physical_health === 'sick' ? '🤒 건강: 아픔' : '💪 건강: 양호'}</Text>
-        <Text style={styles.mbtiText}>🧠 MBTI: {currentMBTI}</Text>
-      </View>
-
-      <View style={styles.fortuneCard}>
-        <Text style={styles.fortuneTitle}>오늘의 운세 (등급: {finalFortuneTier})</Text>
-        <Text style={styles.fortuneDesc}>{fortuneText}</Text>
-      </View>
-
+      {/* 4x2 버튼 그리드 */}
       {!isDead ? (
-        <View>
-          {petStage === 'egg' && (
-            <View style={{ marginBottom: 15 }}>
-              <Button title="✨ 새 알 뽑기 (가챠) ✨" onPress={gachaEgg} color="#FFD700" />
-            </View>
-          )}
-          {/* 11번: 청소/목욕/예방접종/놀아주기/쓰다듬기는 상시 버튼이 아니라 위 퀘스트 배너로만 해결한다.
-              밥주기만 상시 버튼으로 남지만, 시간대 슬롯 밖이거나 이미 그 끼니를 줬으면 가챠가 열리지 않는다. */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.actionButton} onPress={handleFeedPress}>
-              <Text style={styles.actionText}>{petStage === 'egg' ? '부화시키기 🥚' : '밥주기 🍚'}</Text>
-            </TouchableOpacity>
-            {petStage !== 'egg' && (
-              <TouchableOpacity style={styles.actionButton} onPress={openTalkMenu}>
-                <Text style={styles.actionText}>대화하기 💬</Text>
-              </TouchableOpacity>
-            )}
+        <View style={styles.actionGridContainer}>
+          <View style={styles.actionGridRow}>
+            <ActionButton emoji="🧹" onPress={clean} />
+            <ActionButton emoji="⚖️" onPress={() => setStatsModalVisible(true)} />
+            <ActionButton emoji="💬" onPress={openTalkMenu} />
+            <ActionButton emoji="😊" onPress={pet} />
           </View>
-          {petStage !== 'egg' && physical_health === 'sick' && (
-            <View style={styles.actionRow}>
-              <TouchableOpacity style={[styles.actionButton, { backgroundColor: '#E53935' }]} onPress={giveMedicine}>
-                <Text style={styles.actionText}>약주기 💊 ({physical_medicineDoses}/2)</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          <View style={styles.actionGridRow}>
+            <ActionButton emoji="🍚" onPress={handleFeedPress} />
+            <ActionButton emoji="🛁" onPress={bathe} />
+            <ActionButton emoji="⚽" onPress={play} />
+            <ActionButton emoji="💊" onPress={physical_health === 'sick' ? giveMedicine : vaccinate} />
+          </View>
         </View>
       ) : (
         <Button title="새 펫 뽑기 (환생)" onPress={gachaEgg} color="#ff5c5c" />
       )}
+
+      {/* 상세 스탯 모달 */}
+      <Modal visible={isStatsModalVisible} animationType="fade" transparent onRequestClose={() => setStatsModalVisible(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setStatsModalVisible(false)}>
+          <View style={styles.statsCardPopup} onStartShouldSetResponder={() => true}>
+            <Text style={[styles.title, { marginBottom: 15 }]}>📊 상세 상태</Text>
+            <GaugeBar label="🍖 포만감" value={physical_fullness} color="#FF7043" />
+            <GaugeBar label="💖 친밀도" value={spirit_intimacy} color="#EC407A" />
+            <GaugeBar label="✨ 청결도" value={physical_cleanliness} color="#42A5F5" />
+            <GaugeBar label="⚖️ 몸무게" value={physical_weight} color="#8D6E63" />
+            <GaugeBar label="😊 행복도" value={spirit_happiness} color="#FFCA28" />
+            {env_poopCount > 0 && <Text style={styles.statText}>💩 응가: {env_poopCount}개</Text>}
+            <Text style={styles.statText}>{physical_health === 'sick' ? '🤒 건강: 아픔' : '💪 건강: 양호'}</Text>
+            <Text style={styles.mbtiText}>🧠 MBTI: {currentMBTI}</Text>
+            
+            <View style={[styles.fortuneCard, { marginTop: 15 }]}>
+              <Text style={styles.fortuneTitle}>오늘의 운세 (등급: {finalFortuneTier})</Text>
+              <Text style={styles.fortuneDesc}>{fortuneText}</Text>
+            </View>
+
+            <View style={{ marginTop: 20 }}>
+              <Button title="닫기" onPress={() => setStatsModalVisible(false)} />
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <Modal visible={!!spirit_mealGacha} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -666,6 +678,26 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: '#444',
     fontWeight: 'bold',
+  },
+  actionGridContainer: {
+    paddingHorizontal: 20,
+    marginTop: 10,
+    width: '100%',
+  },
+  actionGridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  statsCardPopup: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 15,
+    width: '90%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
   },
   actionRow: {
     flexDirection: 'row',

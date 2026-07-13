@@ -402,7 +402,7 @@ export const usePetStore = create<PetState>()(
       play: () => set((state) => {
         if (state.isDead) return {};
         if (!state.petName) return {}; // Guard
-        if (!hasMatchingActiveQuest(state, 'play')) return {};
+        // removed hasMatchingActiveQuest limit
         if (state.spirit_intimacy >= 100 || state.physical_fullness <= 10) return {};
 
         const now = Date.now();
@@ -424,7 +424,7 @@ export const usePetStore = create<PetState>()(
       clean: () => set((state) => {
         if (state.isDead) return {};
         if (!state.petName) return {}; // Guard
-        if (!hasMatchingActiveQuest(state, 'clean')) return {};
+        // removed hasMatchingActiveQuest limit
         if (state.env_poopCount === 0) return {};
 
         const now = Date.now();
@@ -443,7 +443,7 @@ export const usePetStore = create<PetState>()(
       bathe: () => set((state) => {
         if (state.isDead) return {};
         if (!state.petName) return {}; // Guard
-        if (!hasMatchingActiveQuest(state, 'bathe')) return {};
+        // removed hasMatchingActiveQuest limit
         if (state.physical_cleanliness >= 100) return {};
 
         const now = Date.now();
@@ -457,7 +457,7 @@ export const usePetStore = create<PetState>()(
 
       pet: () => set((state) => {
         if (state.isDead) return {};
-        if (!hasMatchingActiveQuest(state, 'pet')) return {};
+        // removed hasMatchingActiveQuest limit
         if (state.spirit_intimacy >= 100) return {};
 
         const now = Date.now();
@@ -502,7 +502,7 @@ export const usePetStore = create<PetState>()(
       vaccinate: () => set((state) => {
         if (state.isDead) return {};
         if (!state.petName) return {};
-        if (!hasMatchingActiveQuest(state, 'vaccinate')) return {};
+        // removed hasMatchingActiveQuest limit
         if (state.physical_health === 'sick') return {};
         const now = Date.now();
         if (state.physical_vaccinatedUntil && now < state.physical_vaccinatedUntil) return {};
