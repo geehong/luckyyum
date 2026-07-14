@@ -144,6 +144,11 @@ export interface PetState {
   env_lastCleanTime: number | null;
   env_cleanLog: CleanLogEntry[]; // 체크포인트마다 초기화
 
+  // ── visual_ (UI 상태) ──────────────────────────────────────────
+  visual_activeAction: string | null;
+  visual_chatMessage: string | null;
+
+
   // ── 레거시 카운터 (careScore 산출용으로 유지) ──────────────────────
   feedCount: number;
   playCount: number;
@@ -163,6 +168,7 @@ export interface PetState {
   clean: () => void;
   bathe: () => void;
   pet: () => void;
+  walk: () => void;
   giveMedicine: () => void;
   vaccinate: () => void;
   applyDegradation: (hoursPassed: number) => void;
@@ -173,6 +179,7 @@ export interface PetState {
   syncToServer: () => Promise<void>;
   setDailyFortuneLock: (lock: FortuneLock) => void;
   checkAging: () => void;
+  setVisualState: (action: string | null, message: string | null) => void;
 }
 
 const EMPTY_MBTI_SCORES = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
@@ -213,6 +220,10 @@ function freshPetFields() {
     env_poopCount: 0,
     env_lastCleanTime: null,
     env_cleanLog: [],
+
+    visual_activeAction: null,
+    visual_chatMessage: null,
+
 
     feedCount: 0,
     playCount: 0,
@@ -320,6 +331,7 @@ export const usePetStore = create<PetState>()(
 
       setPetName: (name) => set({ petName: name }),
       setDailyFortuneLock: (lock) => set({ dailyFortuneLock: lock }),
+      setVisualState: (action, message) => set({ visual_activeAction: action, visual_chatMessage: message }),
 
       // 11번: 부화(알→아기) 전용. 부화 이후엔 openMealGacha()/chooseMealAmount()로 넘어간다.
       feed: () => set((state) => {
@@ -394,6 +406,8 @@ export const usePetStore = create<PetState>()(
           lastCareTime: now,
           feedCount: state.feedCount + 1,
           dailyFortuneLock: newLock,
+          visual_activeAction: 'eat',
+          visual_chatMessage: '냠냠 쩝쩝!',
           ...resolveQuestPatch(state, 'feed', newIntimacy),
         };
       }),
@@ -417,6 +431,8 @@ export const usePetStore = create<PetState>()(
           spirit_playCountSinceCheckpoint: state.spirit_playCountSinceCheckpoint + 1,
           lastCareTime: now,
           playCount: state.playCount + 1,
+          visual_activeAction: 'play',
+          visual_chatMessage: '와아아 재미있다!!',
           ...resolveQuestPatch(state, 'play', newIntimacy),
         };
       }),
@@ -436,6 +452,8 @@ export const usePetStore = create<PetState>()(
           spirit_intimacy: newIntimacy,
           lastCareTime: now,
           cleanCount: state.cleanCount + 1,
+          visual_activeAction: 'clean',
+          visual_chatMessage: '청소 고마워요!',
           ...resolveQuestPatch(state, 'clean', newIntimacy),
         };
       }),
@@ -451,7 +469,26 @@ export const usePetStore = create<PetState>()(
           physical_cleanliness: 100,
           physical_lastBatheTime: now,
           lastCareTime: now,
+          visual_activeAction: 'bathe',
+          visual_chatMessage: '앗 차가워! 목욕은 싫어!',
           ...resolveQuestPatch(state, 'bathe', state.spirit_intimacy),
+        };
+      }),
+
+      
+      walk: () => set((state) => {
+        if (state.isDead) return {};
+        if (!state.petName) return {};
+        if (state.spirit_intimacy >= 100) return {};
+        const now = Date.now();
+        const newIntimacy = Math.min(100, state.spirit_intimacy + 5);
+        return {
+          spirit_intimacy: newIntimacy,
+          physical_fullness: Math.max(0, state.physical_fullness - 10),
+          physical_weight: Math.max(0, state.physical_weight - 2),
+          lastCareTime: now,
+          visual_activeAction: 'walk',
+          visual_chatMessage: '산책 최고야! 룰루랄라~',
         };
       }),
 
@@ -469,6 +506,8 @@ export const usePetStore = create<PetState>()(
           spirit_playCountSinceCheckpoint: state.spirit_playCountSinceCheckpoint + 1,
           lastCareTime: now,
           petCount: state.petCount + 1,
+          visual_activeAction: 'happy',
+          visual_chatMessage: '기분 좋아~ 헤헤',
           ...resolveQuestPatch(state, 'pet', newIntimacy),
         };
       }),
@@ -509,6 +548,8 @@ export const usePetStore = create<PetState>()(
 
         return {
           physical_vaccinatedUntil: now + VACCINE_PROTECTION_DAYS * 24 * 60 * 60 * 1000,
+          visual_activeAction: 'vaccinate',
+          visual_chatMessage: '주사 아파요 ㅠㅠ',
           ...resolveQuestPatch(state, 'vaccinate', state.spirit_intimacy),
         };
       }),

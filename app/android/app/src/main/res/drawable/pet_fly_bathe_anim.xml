@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android" android:oneshot="false">
+    <item android:drawable="@drawable/pet_fly_bathe_01" android:duration="150" />
+    <item android:drawable="@drawable/pet_fly_bathe_02" android:duration="150" />
+    <item android:drawable="@drawable/pet_fly_bathe_03" android:duration="150" />
+    <item android:drawable="@drawable/pet_fly_bathe_04" android:duration="150" />
+    <item android:drawable="@drawable/pet_fly_bathe_05" android:duration="150" />
+    <item android:drawable="@drawable/pet_fly_bathe_06" android:duration="150" />
+    <item android:drawable="@drawable/pet_fly_bathe_07" android:duration="150" />
+    <item android:drawable="@drawable/pet_fly_bathe_08" android:duration="150" />
+    <item android:drawable="@drawable/pet_fly_bathe_09" android:duration="150" />
+</animation-list>
