@@ -4,7 +4,7 @@ import os
 
 router = APIRouter(tags=["Tester"])
 
-@router.get("/text")
+@router.get("/demo")
 async def get_tester_page():
     # Read the HTML file and return it
     current_dir = os.path.dirname(os.path.abspath(__file__))
