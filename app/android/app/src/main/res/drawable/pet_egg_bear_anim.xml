@@ -15,6 +15,5 @@
     <item android:drawable="@drawable/pet_egg_bear_12" android:duration="300" />
     <item android:drawable="@drawable/pet_egg_bear_13" android:duration="300" />
     <item android:drawable="@drawable/pet_egg_bear_14" android:duration="300" />
-    <item android:drawable="@drawable/pet_egg_bear_15" android:duration="300" />
     <item android:drawable="@drawable/pet_egg_bear_16" android:duration="300" />
 </animation-list>
