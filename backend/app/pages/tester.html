@@ -1143,7 +1143,7 @@ function doChooseMealAmount(amount) {
 
 // 밥주기 버튼 클릭 핸들러 — egg면 부화, 아니면 가챠를 열되 실패(시간대 밖/이미 먹임)하면 안내한다.
 function handleFeedPress() {
-  if (state.petStage === 'egg') { showToast('아직 알 상태라서 밥을 먹을 수 없어요.'); return; }
+  if (state.petStage === 'egg') { alert('아직 알 상태라서 밥을 먹을 수 없어요.'); return; }
   doOpenMealGacha();
   if (!state.spirit_mealGacha) {
     alert('지금은 밥 줄 시간이 아니에요.\n아침(05~11시)·점심(11~17시)·저녁(17~23시)에 다시 시도해주세요.\n이미 이번 끼니를 줬을 수도 있어요.');
@@ -2107,7 +2107,7 @@ function hideStatusScreen() {
 
 function handleFeedPress() {
   if (state.petStage === "egg") {
-    showToast("아직 알 상태라서 밥을 먹을 수 없어요.");
+    alert("아직 알 상태라서 밥을 먹을 수 없어요.");
     return;
   }
   document.getElementById("mealModal").classList.remove("hidden");
@@ -2117,7 +2117,7 @@ function doBatheAction() {
   if (state.petStage === "egg") {
     if (!state.petName) { state.petName = "럭키얌"; }
     doFeed();
-    showToast("따뜻하게 품어주었더니 알이 부화했습니다!");
+    alert("따뜻하게 품어주었더니 알이 부화했습니다!");
     return;
   }
   doBathe();
