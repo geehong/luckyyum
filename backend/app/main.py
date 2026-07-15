@@ -1,6 +1,8 @@
 """LuckyYum FastAPI 진입점 — 미들웨어 설정 및 라우터 등록만 담당."""
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .routers import rankings, auth, users, tester, live
@@ -29,6 +31,11 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(tester.router)
 app.include_router(live.router)
+
+# ── 정적 파일 제공 ────────────────────────────────────────────────────
+current_dir = os.path.dirname(os.path.abspath(__file__))
+static_dir = os.path.join(current_dir, "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.get("/health", tags=["Health"])
 async def health_check():

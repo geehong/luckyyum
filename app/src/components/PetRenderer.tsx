@@ -18,15 +18,29 @@ const ANIM_CONFIG: Record<string, number> = {
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
+const getSpeciesName = (name: string, lockedSpecies?: string | null): string => {
+  if (lockedSpecies) return lockedSpecies;
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = ((hash << 5) - hash) + name.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % 3;
+  if (idx === 0) return 'fly';
+  if (idx === 1) return 'dragon';
+  return 'bear';
+};
+
 const PetRenderer = () => {
   const { 
     petStage, isDead, petName, petBirthDate, physical_health, 
     physical_cleanliness, env_poopCount, 
-    visual_activeAction, visual_chatMessage, setVisualState 
+    visual_activeAction, visual_chatMessage, setVisualState,
+    physical_species
   } = usePetStore();
 
-  // 테스트를 위해 'fly'로 종 고정
-  const species = 'fly';
+  // 이름 기반 해시 또는 확정된 종을 사용하여 실제 종 결정
+  const species = getSpeciesName(petName || 'Unknown', physical_species);
   const isAnimated = !isDead && petStage !== 'memorial';
 
   const [frame, setFrame] = useState(0);
